@@ -133,9 +133,7 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
   ];
 
   const quickActions = [
-    { title: "Cadastro de Produtores", icon: Users, color: "bg-teal-600" },
     { title: "Gerenciamento do Rebanho", icon: Users, color: "bg-blue-600" },
-    { title: "Registro de Vacinação", icon: Heart, color: "bg-green-600" },
     { title: "Gerar QR Code", icon: FileText, color: "bg-purple-600" },
   ];
 
