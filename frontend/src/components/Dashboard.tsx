@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
+import { ChartContainer } from "./ui/chart";
 import { 
   Users, 
   Heart, 
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
+import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import logoImage from "../assets/logo-frontend.png";
 
 interface DashboardProps {
@@ -60,6 +62,66 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
       icon: FileText,
       color: "text-purple-600",
       bgColor: "bg-purple-100"
+    }
+  ];
+
+  interface WeightCurvePoint {
+    month: string;
+    weight: number;
+  }
+
+  interface SlaughterForecastItem {
+    id: string;
+    animal: string;
+    ageMonths: number;
+    currentWeight: number;
+    carcassYield: number;
+    expectedSlaughter: string;
+  }
+
+  const weightCurve: WeightCurvePoint[] = [
+    { month: "Mai", weight: 22 },
+    { month: "Jun", weight: 28 },
+    { month: "Jul", weight: 34 },
+    { month: "Ago", weight: 37 },
+    { month: "Set", weight: 41 },
+    { month: "Out", weight: 44 },
+    { month: "Nov", weight: 47 },
+    { month: "Dez", weight: 49 }
+  ];
+
+  const slaughterForecast: SlaughterForecastItem[] = [
+    {
+      id: "OV-1234",
+      animal: "Ovino #1234",
+      ageMonths: 11,
+      currentWeight: 45,
+      carcassYield: 40,
+      expectedSlaughter: "Junho 2024"
+    },
+    {
+      id: "OV-1235",
+      animal: "Ovino #1235",
+      ageMonths: 10,
+      currentWeight: 42,
+      carcassYield: 38,
+      expectedSlaughter: "Julho 2024"
+    },
+    {
+      id: "OV-1236",
+      animal: "Ovino #1236",
+      ageMonths: 12,
+      currentWeight: 48,
+      carcassYield: 42,
+      expectedSlaughter: "Maio 2024"
+    },
+    {
+      id: "OV-1237",
+      animal: "Ovino #1237",
+      ageMonths: 11,
+      currentWeight: 44,
+      carcassYield: 41,
+      expectedSlaughter: "Junho 2024"
     }
   ];
 
@@ -249,6 +311,80 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
           </div>
         </motion.div>
 
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] mb-6 sm:mb-8"
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Curva de Ganho de Peso do Rebanho</CardTitle>
+            </CardHeader>
+            <CardContent className="h-[320px]">
+              <ChartContainer
+                config={{
+                  weight: {
+                    label: "Peso (kg)",
+                    color: "#0d9488"
+                  }
+                }}
+                className="h-full"
+              >
+                <LineChart data={weightCurve}>
+                  <CartesianGrid stroke="#E2E8F0" strokeDasharray="3 3" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} style={{ fontSize: 12, fill: '#64748B' }} />
+                  <YAxis axisLine={false} tickLine={false} style={{ fontSize: 12, fill: '#64748B' }} />
+                  <Tooltip wrapperStyle={{ borderRadius: 12, border: '1px solid rgba(148,163,184,0.2)', backgroundColor: '#fff' }} />
+                  <Legend verticalAlign="top" align="right" height={36} />
+                  <Line type="monotone" dataKey="weight" stroke="#0d9488" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#ffffff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Previsão de Abate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="rounded-3xl border border-slate-200/80 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Meta de rendimento de carcaça</p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-2xl font-semibold text-slate-900">42%</p>
+                      <p className="text-xs text-slate-500">Meta ideal para corte de Manta</p>
+                    </div>
+                    <div className="h-4 flex-1 overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-4 rounded-full bg-emerald-500" style={{ width: '42%' }} />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {slaughterForecast.map((item) => (
+                    <div key={item.id} className="rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{item.animal}</p>
+                          <p className="text-xs text-slate-500">{item.expectedSlaughter} • {item.ageMonths} meses</p>
+                        </div>
+                        <Badge className={item.carcassYield >= 42 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}>
+                          {item.carcassYield}%
+                        </Badge>
+                      </div>
+                      <div className="mt-3 text-sm text-slate-600">Peso atual: {item.currentWeight}kg</div>
+                      <div className="mt-3 h-2 rounded-full bg-slate-200">
+                        <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(item.carcassYield, 100)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
           {/* Production Registration */}
           <motion.div
@@ -289,7 +425,7 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
                     className="bg-gray-50"
                   />
                 </div>
-                <Button className="w-full bg-teal-600 hover:bg-teal-700 cursor-pointer">
+                <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white cursor-pointer">
                   Registrar Produção
                 </Button>
               </CardContent>
@@ -328,8 +464,8 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
                 </Button>
                 <div className="pt-4 border-t border-gray-200">
                   <Button className="w-full bg-teal-600 hover:bg-teal-700 cursor-pointer">
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    <span className="text-sm sm:text-base">Ver Todos os Relatórios</span>
+                        <BarChart3 className="mr-2 h-4 w-4 text-white" />
+                          <span className="text-sm sm:text-base text-white">Ver Todos os Relatórios</span>
                   </Button>
                 </div>
               </CardContent>

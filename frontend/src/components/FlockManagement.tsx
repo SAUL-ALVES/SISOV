@@ -3,24 +3,26 @@ import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Label } from "./ui/label";
+import { Checkbox } from "./ui/checkbox";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "./ui/table";
 import { Calendar as CalendarComponent } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { 
+import {
   ArrowLeft,
   Search,
   Filter,
   Plus,
-  Edit,
-  //Trash2,
-  Eye,
   Calendar,
-  Activity,
-  MapPin,
-  Weight,
   Bell,
   ChevronDown,
   Menu,
-  MoreVertical,
   X
 } from "lucide-react";
 import { useState } from "react";
@@ -64,6 +66,7 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
     race: "",
     birthDate: "",
   });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const animals = [
     {
@@ -166,6 +169,55 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
     setTypeFilter("Todos");
     setStatusFilter("Todos");
     setLocationFilter("Todos");
+  };
+
+  const selectedCount = selectedIds.length;
+  const isAllSelected = selectedCount > 0 && filteredAnimals.length > 0 && selectedIds.length === filteredAnimals.length;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds([]);
+      return;
+    }
+
+    setSelectedIds(filteredAnimals.map((animal) => animal.id));
+  };
+
+  const toggleSelectAnimal = (animalId: string) => {
+    setSelectedIds((current) =>
+      current.includes(animalId)
+        ? current.filter((id) => id !== animalId)
+        : [...current, animalId]
+    );
+  };
+
+  const exportSelectedCSV = () => {
+    const selected = animals.filter((animal) => selectedIds.includes(animal.id));
+    if (!selected.length) return;
+
+    const header = ["ID","Nome","Raça","Peso","Status","Localização"];
+    const rows = selected.map((animal) => [animal.id, animal.name, animal.race, animal.weight, animal.status, animal.location]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ovinos-selecionados-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportSelectedPDF = () => {
+    if (!selectedCount) return;
+    window.alert(`Exportação em PDF para ${selectedCount} ovinos ainda não disponível no protótipo.`);
+  };
+
+  const transferSelectedBatch = () => {
+    if (!selectedCount) return;
+    window.alert(`${selectedCount} ovinos selecionados para transferência de lote.`);
   };
 
   const stats = [
@@ -432,82 +484,92 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
             </Button>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredAnimals.map((animal, index) => (
-              <motion.div
-                key={animal.id}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-              >
-              <Card className="overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-video w-full overflow-hidden bg-gray-100">
-                  <img 
-                    src={animal.image} 
-                    alt={animal.name}
-                    className="w-full h-full object-cover"
-                  />
+          <div className="space-y-4">
+            {selectedCount > 0 && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{selectedCount} ovinos selecionados</p>
+                    <p className="text-sm text-slate-500">Ações em massa disponíveis para o lote.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="cursor-pointer" onClick={exportSelectedCSV}>
+                      Exportar CSV
+                    </Button>
+                    <Button variant="outline" size="sm" className="cursor-pointer" onClick={exportSelectedPDF}>
+                      Exportar PDF
+                    </Button>
+                    <Button size="sm" className="cursor-pointer bg-teal-600 text-white hover:bg-teal-700" onClick={transferSelectedBatch}>
+                      Transferir Lote
+                    </Button>
+                  </div>
                 </div>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{animal.name}</h3>
-                      <p className="text-sm text-gray-500">{animal.id}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="cursor-pointer -mr-2">
-                      <MoreVertical className="h-4 w-4 text-gray-400" />
-                    </Button>
+              </div>
+            )}
+            <Card>
+              <CardContent>
+                <div className="overflow-x-auto -mx-4 sm:mx-0">
+                  <div className="inline-block min-w-full align-middle">
+                    <Table className="min-w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[48px] px-4 py-3">
+                            <Checkbox checked={isAllSelected} onCheckedChange={toggleSelectAll} />
+                          </TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">ID</TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">Animal</TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">Peso</TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">Localização</TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">Status</TableHead>
+                          <TableHead className="py-3 px-4 text-left text-xs sm:text-sm font-semibold text-gray-700">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredAnimals.map((animal) => (
+                          <TableRow key={animal.id}>
+                            <TableCell className="px-4 py-3">
+                              <Checkbox
+                                checked={selectedIds.includes(animal.id)}
+                                onCheckedChange={() => toggleSelectAnimal(animal.id)}
+                              />
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.id}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.name}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.weight}</TableCell>
+                            <TableCell className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.location}</TableCell>
+                            <TableCell className="py-3 px-4 whitespace-nowrap">
+                              <Badge className={`text-xs ${animal.status === "Saudável" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                                {animal.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="py-3 px-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="cursor-pointer text-xs sm:text-sm"
+                                  onClick={() => onAnimalClick(animal, true)}
+                                >
+                                  Ver
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="cursor-pointer text-xs sm:text-sm"
+                                  onClick={() => onAnimalClick(animal, false)}
+                                >
+                                  Editar
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Activity className="h-4 w-4 mr-2 text-teal-600" />
-                      <span className="font-medium mr-2">Raça:</span>
-                      <span>{animal.race}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Weight className="h-4 w-4 mr-2 text-teal-600" />
-                      <span className="font-medium mr-2">Peso:</span>
-                      <span>{animal.weight}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 mr-2 text-teal-600" />
-                      <span className="font-medium mr-2">Nascimento:</span>
-                      <span>{animal.birthDate}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2 text-teal-600" />
-                      <span className="font-medium mr-2">Local:</span>
-                      <span>{animal.location}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <Badge 
-                      variant={animal.status === "Saudável" ? "default" : "secondary"}
-                      className={animal.status === "Saudável" ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"}
-                    >
-                      {animal.status}
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      Checado: {animal.lastCheck}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 cursor-pointer" onClick={() => onAnimalClick(animal, true)}>
-                      <Eye className="h-3 w-3 mr-1" />
-                      Ver
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1 cursor-pointer" onClick={() => onAnimalClick(animal, false)}>
-                      <Edit className="h-3 w-3 mr-1" />
-                      Editar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

@@ -197,8 +197,8 @@ export function HowItWorks({ onAccessClick }: HowItWorksProps) {
               <AnimatedSection delay={1.6} direction="right">
                 <div className="relative">
                   <img
-                    src="https://images.unsplash.com/photo-1706759755767-526cdaa02109?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxRUiUyMGNvZGUlMjBwaG9uZSUyMHNjcmVlbnxlbnwxfHx8fDE3NTc2MzM0ODJ8MA&ixlib=rb-4.1.0&q=80&w=1080"
-                    alt="QR Code na tela do smartphone"
+                    src="https://www.opiniaoce.com.br/wp-content/uploads/2023/03/Capa830-e1678215246665.png"
+                    alt="Rastreabilidade de rebanho com QR Code no smartphone"
                     className="rounded-xl shadow-lg w-full h-80 object-cover"
                   />
                   <AnimatedSection delay={2.0} direction="fade" className="absolute top-4 right-4">

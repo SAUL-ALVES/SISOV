@@ -1,22 +1,20 @@
+﻿import { useMemo, useState } from "react";
+import { motion } from "motion/react";
+import QRCodeLib from "qrcode";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
-import { 
+import { Badge } from "./ui/badge";
+import {
   ArrowLeft,
-  Search,
   QrCode,
   Award,
-  Download,
-  X,
-  Bell,
-  ChevronDown,  
-  Menu,
-  CheckCircle
+  Printer,
+  Plus,
+  Loader2,
+  ChevronDown
 } from "lucide-react";
-import { useState} from "react";
-import { motion, AnimatePresence } from "motion/react";
 import logoImage from "../assets/logo-frontend.png";
-import QRCodeLib from "qrcode";
 
 interface Animal {
   id: string;
@@ -29,6 +27,12 @@ interface Animal {
   location: string;
   lastCheck: string;
   image: string;
+  hasEartag: boolean;
+}
+
+interface BulkLabel {
+  id: string;
+  qrCodeUrl: string;
 }
 
 interface QRCodeGenerationProps {
@@ -37,13 +41,9 @@ interface QRCodeGenerationProps {
 }
 
 export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [showSeal, setShowSeal] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState("");
-
+  const [bulkQuantity, setBulkQuantity] = useState(12);
+  const [bulkLabels, setBulkLabels] = useState<BulkLabel[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const animals: Animal[] = [
     {
@@ -56,7 +56,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto A",
       lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: false
     },
     {
       id: "OV-1235",
@@ -68,7 +69,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto B",
       lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1736066349278-897dde1f055d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNoZWVwJTIwbWVhZG93fGVufDF8fHx8MTc1OTI3MjU3NXww&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1736066349278-897dde1f055d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNoZWVwJTIwbWVhZG93fGVufDF8fHx8MTc1OTI3MjU3NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: false
     },
     {
       id: "CP-0891",
@@ -80,7 +82,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto C",
       lastCheck: "18/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: true
     },
     {
       id: "OV-1236",
@@ -92,7 +95,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto A",
       lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1664546474909-89d3390196d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm93biUyMHNoZWVwJTIwd29vbHxlbnwxfHx8fDE3NTkyNzI1NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1664546474909-89d3390196d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm93biUyMHNoZWVwJTIwd29vbHxlbnwxfHx8fDE3NTkyNzI1NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: false
     },
     {
       id: "OV-1237",
@@ -104,7 +108,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto B",
       lastCheck: "17/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: true
     },
     {
       id: "CP-0892",
@@ -116,431 +121,284 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       status: "Saudável",
       location: "Pasto C",
       lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      hasEartag: false
     }
   ];
 
-  const filteredAnimals = animals.filter(animal => 
-    animal.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    animal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    animal.race.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const availableAnimals = useMemo(() => animals.filter((animal) => !animal.hasEartag), [animals]);
 
-  const generateQRCode = async (animal: Animal) => {
-    const url = `https://sisov.com.br/rastreamento/${animal.id}`;
+  const buildLabelId = (index: number) => `SEM-BRINCO-${String(index + 1).padStart(3, "0")}`;
+
+  const generateBulkQRCodes = async () => {
+    if (bulkQuantity < 1) return;
+    setIsGenerating(true);
     try {
-      const qrUrl = await QRCodeLib.toDataURL(url, {
-        width: 400,
-        margin: 2,
-        color: {
-          dark: "#0d9488",
-          light: "#ffffff"
-        }
-      });
-      setQrCodeUrl(qrUrl);
-      setShowQRCode(true);
-      setShowSeal(false);
-    } catch (err) {
-      console.error("Erro ao gerar QR Code:", err);
+      const labels = await Promise.all(
+        Array.from({ length: bulkQuantity }, (_, index) => {
+          const id = buildLabelId(index);
+          const url = `https://sisov.com.br/rastreamento/${id}`;
+          return QRCodeLib.toDataURL(url, {
+            width: 360,
+            margin: 2,
+            color: {
+              dark: "#0f766e",
+              light: "#ffffff"
+            }
+          }).then((qrCodeUrl) => ({ id, qrCodeUrl }));
+        })
+      );
+      setBulkLabels(labels);
+    } catch (error) {
+      console.error("Falha ao gerar QR Codes em lote:", error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const generateSeal = () => {
-    setShowSeal(true);
-    setShowQRCode(false);
-  };
-
-  const downloadQRCode = () => {
-    if (qrCodeUrl) {
-      const link = document.createElement('a');
-      link.href = qrCodeUrl;
-      link.download = `qrcode-${selectedAnimal?.id}.png`;
-      link.click();
-    }
-  };
-
-  const closeModal = () => {
-    setShowQRCode(false);
-    setShowSeal(false);
-    setSelectedAnimal(null);
+  const handlePrint = () => {
+    if (!bulkLabels.length) return;
+    window.print();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <motion.header 
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <motion.header
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="bg-white border-b border-gray-200 sticky top-0 z-50"
+        className="bg-white border-b border-slate-200 sticky top-0 z-50 print:hidden"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={onBack}
-                className="cursor-pointer"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
+          <div className="flex flex-col gap-4 py-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon" onClick={onBack} className="cursor-pointer">
+                <ArrowLeft className="h-5 w-5 text-slate-600" />
               </Button>
-              <img 
-                src={logoImage} 
-                alt="Sisov Logo" 
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover"
-              />
-              <div className="hidden sm:block">
-                <h1 className="font-semibold text-gray-900">Gerar QR Code</h1>
-                <p className="text-sm text-gray-500">Rastreabilidade e Certificação</p>
-              </div>
-              <div className="sm:hidden">
-                <h1 className="font-semibold text-gray-900 text-sm">QR Code</h1>
+              <img src={logoImage} alt="Sisov Logo" className="w-10 h-10 rounded-xl object-cover" />
+              <div>
+                <p className="text-sm font-medium text-slate-500">Escritório do Produtor</p>
+                <h1 className="text-lg font-semibold text-slate-900">QR Code em Lote</h1>
               </div>
             </div>
 
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Button variant="ghost" size="icon" className="relative cursor-pointer">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
-              
-              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center space-x-3 pl-4 border-l border-slate-200">
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">Produtor Silva</div>
-                  <div className="text-xs text-gray-500">Administrador</div>
+                  <div className="text-sm font-semibold text-slate-900">Produtor Silva</div>
+                  <div className="text-xs text-slate-500">Administrador</div>
                 </div>
                 <Button variant="ghost" size="icon" className="cursor-pointer">
-                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                  <ChevronDown className="h-4 w-4 text-slate-600" />
                 </Button>
               </div>
-
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={onLogout}
-                className="text-gray-600 hover:text-red-600 cursor-pointer"
-              >
+              <Button variant="ghost" size="icon" onClick={onLogout} className="text-slate-600 hover:text-rose-600">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </div>
-
-            {/* Mobile Actions */}
-            <div className="flex md:hidden items-center space-x-2">
-              <Button variant="ghost" size="icon" className="relative cursor-pointer">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="cursor-pointer"
-              >
-                <Menu className="h-5 w-5 text-gray-600" />
-              </Button>
-            </div>
           </div>
-
-          {/* Mobile Menu Dropdown */}
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">Produtor Silva</div>
-                    <div className="text-xs text-gray-500">Administrador</div>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={onLogout}
-                    className="text-gray-600 hover:text-red-600 cursor-pointer"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Voltar
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </motion.header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Info Cards */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 print:hidden"
         >
-          <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+          <Card className="bg-gradient-to-br from-teal-600 to-emerald-600 text-white">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <QrCode className="h-6 w-6 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <QrCode className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-teal-100">QR Code de Rastreabilidade</p>
-                  <p className="text-lg font-semibold">Ciclo de Vida Completo</p>
+                  <p className="text-sm text-slate-100">Impressão otimizada</p>
+                  <p className="text-lg font-semibold">Grade de etiquetas padrão Pimaco</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card className="bg-gradient-to-br from-violet-600 to-fuchsia-600 text-white">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Award className="h-6 w-6 text-white" />
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Award className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm text-purple-100">Selo de Certificação</p>
-                  <p className="text-lg font-semibold">Produto Final</p>
+                  <p className="text-sm text-slate-100">Rastreabilidade em massa</p>
+                  <p className="text-lg font-semibold">Sem brinco & geração rápida</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Search Bar */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-6 sm:mb-8"
-        >
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              placeholder="Buscar por ID, nome ou raça do animal..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-white h-12"
-            />
-          </div>
-        </motion.div>
-
-        {/* Animals List */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          className="grid gap-6 xl:grid-cols-[1.6fr_1fr]"
         >
           <Card>
             <CardHeader>
-              <CardTitle className="text-base sm:text-lg">Selecione um Animal</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Configuração em Lote</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {filteredAnimals.map((animal, index) => (
-                  <motion.div
-                    key={animal.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
-                    className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                      selectedAnimal?.id === animal.id 
-                        ? 'border-teal-600 bg-teal-50' 
-                        : 'border-gray-200 hover:border-teal-300 bg-white'
-                    }`}
-                    onClick={() => setSelectedAnimal(animal)}
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-[1fr_auto] items-end">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Animais sem brinco</p>
+                    <p className="text-sm text-slate-500">Use este painel para gerar imediatamente etiquetas para o rebanho sem brinco.</p>
+                  </div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={bulkQuantity}
+                      onChange={(event) => setBulkQuantity(Number(event.target.value))}
+                      className="w-28"
+                    />
+                    <Badge className="bg-slate-100 text-slate-900">Máx 24</Badge>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white hover:bg-teal-700"
+                    onClick={generateBulkQRCodes}
+                    disabled={isGenerating || bulkQuantity < 1}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img 
-                          src={animal.image}
-                          alt={animal.name}
-                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover"
-                        />
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{animal.name}</h3>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            <span className="text-xs sm:text-sm text-gray-600">ID: {animal.id}</span>
-                            <span className="text-xs sm:text-sm text-gray-600">• {animal.race}</span>
-                            <span className="text-xs sm:text-sm text-gray-600">• {animal.weight}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {selectedAnimal?.id === animal.id && (
-                        <CheckCircle className="h-6 w-6 text-teal-600 flex-shrink-0" />
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Gerar QR Codes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="inline-flex items-center justify-center gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
+                    onClick={handlePrint}
+                    disabled={bulkLabels.length === 0}
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimir etiquetas
+                  </Button>
+                </div>
 
-                {filteredAnimals.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Nenhum animal encontrado</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-slate-200/80 bg-slate-50 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900">Visão geral</h3>
+                    <p className="mt-2 text-sm text-slate-600">Cores e dimensões foram ajustadas para impressão com qualidade em folhas de etiquetas e selos.</p>
                   </div>
-                )}
+                  <div className="rounded-3xl border border-slate-200/80 bg-slate-50 p-4">
+                    <h3 className="text-sm font-semibold text-slate-900">Rastreamento ativo</h3>
+                    <p className="mt-2 text-sm text-slate-600">Cada QR Code conecta ao painel público de rastreabilidade do SISOV.</p>
+                  </div>
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Action Buttons */}
-              {selectedAnimal && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="mt-6 pt-6 border-t border-gray-200"
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button 
-                      className="bg-teal-600 hover:bg-teal-700 cursor-pointer"
-                      onClick={() => generateQRCode(selectedAnimal)}
-                    >
-                      <QrCode className="h-4 w-4 mr-2" />
-                      Gerar QR Code
-                    </Button>
-                    <Button 
-                      className="bg-purple-600 hover:bg-purple-700 cursor-pointer"
-                      onClick={() => generateSeal()}
-                    >
-                      <Award className="h-4 w-4 mr-2" />
-                      Gerar Selo
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
+          <Card className="hidden xl:block">
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Animais sugeridos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-3xl border border-slate-200/70 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-900">Sem brinco</p>
+                <p className="mt-2 text-sm text-slate-600">Você tem {availableAnimals.length} animais cadastrados sem brinco no sistema.</p>
+              </div>
+              {availableAnimals.slice(0, 3).map((animal) => (
+                <div key={animal.id} className="rounded-3xl border border-slate-200/70 bg-white p-4 shadow-sm">
+                  <p className="text-sm font-semibold text-slate-900">{animal.name}</p>
+                  <p className="text-xs text-slate-500">{animal.race} • {animal.weight}</p>
+                  <p className="mt-2 text-xs text-slate-500">Origem: {animal.location}</p>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </motion.div>
-      </main>
 
-      {/* QR Code Modal */}
-      <AnimatePresence>
-        {showQRCode && selectedAnimal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={closeModal}
+        {bulkLabels.length > 0 && (
+          <motion.section
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-8"
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 sm:p-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">QR Code Gerado</h2>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={closeModal}
-                  className="cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+            <div className="flex flex-col gap-3 justify-between md:flex-row md:items-center print:hidden">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Visualização de impressão</h2>
+                <p className="mt-1 text-sm text-slate-500">{bulkLabels.length} etiquetas prontas para exportação ou impressão.</p>
               </div>
+              <Button
+                className="inline-flex items-center gap-2 bg-teal-600 text-white hover:bg-teal-700"
+                onClick={handlePrint}
+              >
+                <Printer className="h-4 w-4" />
+                Abrir impressão
+              </Button>
+            </div>
 
-              <div className="text-center space-y-4">
-                <div className="bg-gray-50 p-6 rounded-xl">
-                  {qrCodeUrl && (
-                    <img 
-                      src={qrCodeUrl} 
-                      alt="QR Code"
-                      className="mx-auto w-64 h-64"
-                    />
-                  )}
-                </div>
-
-                <div className="text-left bg-teal-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-teal-900 mb-2">{selectedAnimal.name}</p>
-                  <p className="text-xs text-teal-700">ID: {selectedAnimal.id}</p>
-                  <p className="text-xs text-teal-700">Raça: {selectedAnimal.race}</p>
-                  <p className="text-xs text-teal-700 mt-2">
-                    URL: https://sisov.com.br/rastreamento/{selectedAnimal.id}
-                  </p>
-                </div>
-
-                <Button 
-                  className="w-full bg-teal-600 hover:bg-teal-700 cursor-pointer"
-                  onClick={downloadQRCode}
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-2 print:p-0">
+              {bulkLabels.map((label) => (
+                <div
+                  key={label.id}
+                  className="print-label rounded-[18px] border border-slate-200 bg-white p-5 text-slate-950 shadow-sm print:border-slate-300 print:shadow-none"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar QR Code
-                </Button>
-
-                <p className="text-xs text-gray-500 mt-4">
-                  Este QR Code contém o histórico completo do animal e pode ser impresso na embalagem do produto.
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Seal Modal */}
-      <AnimatePresence>
-        {showSeal && selectedAnimal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={closeModal}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 sm:p-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-900">Selo de Certificação</h2>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={closeModal}
-                  className="cursor-pointer"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="text-center space-y-4">
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-8 rounded-xl text-white">
-                  <Award className="h-24 w-24 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">SISOV</h3>
-                  <p className="text-sm text-purple-100">Certificado de Qualidade</p>
-                  <div className="mt-6 pt-6 border-t border-purple-400">
-                    <p className="font-semibold">{selectedAnimal.name}</p>
-                    <p className="text-sm text-purple-100">ID: {selectedAnimal.id}</p>
-                    <p className="text-xs text-purple-200 mt-2">Raça: {selectedAnimal.race}</p>
-                    <p className="text-xs text-purple-200">Origem: {selectedAnimal.location}</p>
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Etiqueta</p>
+                      <p className="text-sm font-semibold text-slate-900">{label.id}</p>
+                    </div>
+                    <Badge className="bg-emerald-100 text-emerald-900">IG Tauá</Badge>
+                  </div>
+                  <div className="flex justify-center rounded-3xl bg-slate-100 p-5 mb-4">
+                    <img src={label.qrCodeUrl} alt={`QR ${label.id}`} className="h-40 w-40 object-contain" />
+                  </div>
+                  <div className="space-y-2 text-[11px] leading-5 text-slate-600">
+                    <p><span className="font-semibold text-slate-900">Origem:</span> Fazenda Inhamuns</p>
+                    <p><span className="font-semibold text-slate-900">Produto:</span> Manta de Carneiro</p>
+                    <p><span className="font-semibold text-slate-900">Rastreamento:</span> sisov.com.br/rastreamento/{label.id}</p>
                   </div>
                 </div>
-
-                <div className="text-left bg-purple-50 p-4 rounded-lg">
-                  <p className="text-sm font-semibold text-purple-900 mb-2">Informações do Selo</p>
-                  <p className="text-xs text-purple-700">✓ Rastreabilidade completa</p>
-                  <p className="text-xs text-purple-700">✓ Procedência certificada</p>
-                  <p className="text-xs text-purple-700">✓ Qualidade garantida</p>
-                  <p className="text-xs text-purple-700">✓ Pronto para comercialização</p>
-                </div>
-
-                <Button 
-                  className="w-full bg-purple-600 hover:bg-purple-700 cursor-pointer"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar Selo
-                </Button>
-
-                <p className="text-xs text-gray-500 mt-4">
-                  Este selo certifica que o produto passou por todas as etapas de controle de qualidade.
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
+              ))}
+            </div>
+          </motion.section>
         )}
-      </AnimatePresence>
+      </main>
+
+      <style>{`
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          .print-label {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+
+          .print\\:grid {
+            display: grid !important;
+          }
+
+          .print\\:p-0 {
+            padding: 0 !important;
+          }
+
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+        }
+      `}</style>
     </div>
   );
 }
