@@ -1,17 +1,16 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import App from './App.tsx'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import PublicTraceability from './components/PublicTraceability'
+import { RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { QueryProvider } from './providers/QueryProvider'
+import { routes } from './router'
+
+const router = createBrowserRouter(routes)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/rastreabilidade/:id" element={<PublicTraceability />} />
-        <Route path="/*" element={<App />} />
-      </Routes>
-    </BrowserRouter>
+    <QueryProvider>
+      <RouterProvider router={router} />
+    </QueryProvider>
   </StrictMode>,
 )
