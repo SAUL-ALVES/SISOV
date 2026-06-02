@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Header } from "./components/Header";
 import { Hero } from "./components/Hero";
 import { About } from "./components/About";
@@ -29,16 +30,45 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("landing");
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const navigateToLogin = () => setCurrentPage("login");
-  const navigateToDashboard = () => setCurrentPage("dashboard");
-  const navigateToLanding = () => setCurrentPage("landing");
-  const navigateToFlock = () => setCurrentPage("flock");
-  const navigateToQRCode = () => setCurrentPage("qr-code");
+  useEffect(() => {
+    // sync location -> app state
+    const path = location.pathname;
+    if (path === "/login") {
+      setCurrentPage("login");
+      return;
+    }
+    if (path === "/dashboard") {
+      setCurrentPage("dashboard");
+      return;
+    }
+    if (path === "/flock") {
+      setCurrentPage("flock");
+      return;
+    }
+    if (path === "/qr-code" || path === "/qrcode") {
+      setCurrentPage("qr-code");
+      return;
+    }
+    if (path.startsWith("/animal-panel") || path.startsWith("/animal")) {
+      setCurrentPage("animal-panel");
+      setIsViewMode(true);
+      return;
+    }
+    setCurrentPage("landing");
+  }, [location.pathname]);
+
+  const navigateToLogin = () => navigate('/login');
+  const navigateToDashboard = () => navigate('/dashboard');
+  const navigateToLanding = () => navigate('/');
+  const navigateToFlock = () => navigate('/flock');
+  const navigateToQRCode = () => navigate('/qr-code');
   const navigateToAnimalPanel = (animal: Animal, viewOnly: boolean = false) => {
     setSelectedAnimal(animal);
     setIsViewMode(viewOnly);
-    setCurrentPage("animal-panel");
+    navigate('/animal');
   };
 
   if (currentPage === "login") {

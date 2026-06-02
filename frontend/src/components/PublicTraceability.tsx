@@ -77,7 +77,7 @@ const traceabilityData = {
   ] as AssuranceItem[]
 };
 
-export function PublicTraceability() {
+export default function PublicTraceability() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <section className="relative overflow-hidden bg-slate-900">
