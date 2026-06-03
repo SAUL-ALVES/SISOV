@@ -1,6 +1,5 @@
 import { type ComponentType, type SVGProps } from "react";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { MapPin, ShieldCheck, HeartPulse, Leaf, Sparkles, Clock3, Droplet } from "lucide-react";
