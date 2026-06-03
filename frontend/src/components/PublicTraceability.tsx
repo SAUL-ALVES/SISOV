@@ -1,115 +1,61 @@
-import { type ComponentType, type SVGProps } from "react";
-import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Separator } from "./ui/separator";
-import { MapPin, ShieldCheck, HeartPulse, Leaf, Sparkles, Clock3, Droplet } from "lucide-react";
-import type { PublicTraceabilityData } from "../types/api-contract";
-import { DEFAULT_IMAGE } from "../utils/animalMappers";
+import type { PublicTraceabilityData, PublicTraceabilityEvent } from "../types/api-contract";
 
-interface TraceEvent {
-  title: string;
-  date: string;
-  description: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
+function formatDate(iso?: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-interface AssuranceItem {
-  title: string;
-  subtitle: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
+function DocSection({ number, title, children }: { number: number; title: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+      <div className="bg-teal-700 px-5 py-3">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-white">
+          {number}. {title}
+        </h2>
+      </div>
+      <div className="divide-y divide-gray-100 bg-white">{children}</div>
+    </div>
+  );
 }
 
-const EVENT_ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  VACCINATION: ShieldCheck,
-  VET_TREATMENT: HeartPulse,
-  WEIGHT_MEASUREMENT: Sparkles,
-  NUTRITIONAL_FEEDING: Leaf,
-  REPRODUCTION_COVERAGE: Leaf,
-  SANITARY_DOCUMENT: ShieldCheck,
-  SLAUGHTER_FINALIZATION: HeartPulse,
-};
+function Row({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="flex text-sm">
+      <div className="w-2/5 shrink-0 bg-gray-50 px-4 py-3 font-semibold text-gray-700 border-r border-gray-100">
+        {label}
+      </div>
+      <div className="flex-1 px-4 py-3 text-gray-800 break-all">{value || "—"}</div>
+    </div>
+  );
+}
 
-const EVENT_LABELS: Record<string, string> = {
-  VACCINATION: "Vacinação",
-  VET_TREATMENT: "Tratamento veterinário",
-  WEIGHT_MEASUREMENT: "Pesagem",
-  NUTRITIONAL_FEEDING: "Alimentação",
-  REPRODUCTION_COVERAGE: "Reprodução",
-  SANITARY_DOCUMENT: "Documento sanitário",
-  SLAUGHTER_FINALIZATION: "Abate",
-};
+function SubHeader({ title }: { title: string }) {
+  return (
+    <div className="bg-teal-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-teal-700 border-b border-teal-100">
+      {title}
+    </div>
+  );
+}
 
-function buildViewModel(data: PublicTraceabilityData) {
-  const animal = data.animal;
-  const property = data.property ?? animal?.property;
-  const producerName =
-    (typeof data.producer === "object" && data.producer?.name) ||
-    (typeof data.producer === "string" ? data.producer : "Produtor certificado");
-
-  const events: TraceEvent[] = (data.events ?? []).map((event) => ({
-    title: EVENT_LABELS[event.eventType ?? ""] ?? event.eventType ?? "Evento",
-    date: event.occurredAt
-      ? new Date(event.occurredAt).toLocaleDateString("pt-BR", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
-      : "—",
-    description: event.description ?? "Registro de manejo no SISOV.",
-    icon: EVENT_ICONS[event.eventType ?? ""] ?? MapPin,
-  }));
-
-  if (!events.length && animal?.birthDate) {
-    events.push({
-      title: "Nascimento registrado",
-      date: new Date(animal.birthDate).toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
-      description: `Origem em ${animal.birthCity}. Raça ${animal.breed}.`,
-      icon: MapPin,
-    });
+function EventRows({ events }: { events: PublicTraceabilityEvent[] }) {
+  if (!events.length) {
+    return <div className="px-4 py-3 text-sm italic text-gray-400">Nenhum registro.</div>;
   }
-
-  const assurances: AssuranceItem[] = [
-    {
-      title: "Criação regional",
-      subtitle: property?.city
-        ? `Produção em ${property.city}${property.state ? `, ${property.state}` : ""}.`
-        : "Origem certificada na região dos Inhamuns.",
-      icon: Leaf,
-    },
-    {
-      title: "Bem-estar animal",
-      subtitle: "Histórico sanitário registrado no SISOV.",
-      icon: HeartPulse,
-    },
-    {
-      title: "Rastreabilidade",
-      subtitle: animal?.tagId
-        ? `Identificação ${animal.tagId}`
-        : `ID SISOV ${animal?.sisovId?.slice(0, 8) ?? "—"}`,
-      icon: ShieldCheck,
-    },
-  ];
-
-  return {
-    heroImage: DEFAULT_IMAGE,
-    batchName: animal?.tagId ? `Animal ${animal.tagId}` : "Rastreabilidade SISOV",
-    producer: producerName,
-    property: property?.farmName
-      ? `${property.farmName}${property.city ? `, ${property.city}` : ""}`
-      : "Propriedade registrada",
-    origin: data.origin ?? animal?.birthCity ?? "Região dos Inhamuns",
-    seal:
-      data.seal ??
-      (data.hasIG
-        ? "Indicação Geográfica — Manta de Carneiro de Tauá"
-        : "Rastreabilidade SISOV"),
-    events,
-    assurances,
-  };
+  return (
+    <>
+      {events.map((event, i) => (
+        <Row
+          key={i}
+          label={formatDate(event.occurredAt)}
+          value={
+            [event.description, event.value ? `Valor: ${event.value}` : null]
+              .filter(Boolean)
+              .join(" • ") || "Registrado"
+          }
+        />
+      ))}
+    </>
+  );
 }
 
 interface PublicTraceabilityProps {
@@ -117,194 +63,192 @@ interface PublicTraceabilityProps {
 }
 
 export default function PublicTraceability({ data }: PublicTraceabilityProps) {
-  const traceabilityData = buildViewModel(data);
+  const property = data.property;
+  const producerName = property?.producer?.name ?? null;
+  const events = data.managementEvents ?? [];
+
+  const vaccinationEvents = events.filter((e) => e.eventType === "VACCINATION");
+  const vetEvents = events.filter((e) => e.eventType === "VET_TREATMENT");
+  const feedingEvents = events.filter((e) => e.eventType === "NUTRITIONAL_FEEDING");
+  const reproductionEvents = events.filter((e) => e.eventType === "REPRODUCTION_COVERAGE");
+  const slaughterEvents = events.filter((e) => e.eventType === "SLAUGHTER_FINALIZATION");
+  const sanitaryEvents = events.filter((e) => e.eventType === "SANITARY_DOCUMENT");
+
+  const STATUS_LABELS: Record<string, string> = {
+    ACTIVE: "Ativo na propriedade",
+    SOLD: "Vendido",
+    SLAUGHTERED: "Abatido",
+    DEAD: "Óbito",
+  };
+
+  const animalStatus = data.status ? (STATUS_LABELS[data.status] ?? data.status) : null;
+  const locationLine = property?.city
+    ? `${property.city}${property.state ? `, ${property.state}` : ""}`
+    : null;
+
+  const generatedAt = new Date().toLocaleString("pt-BR");
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <section className="relative overflow-hidden bg-slate-900">
-        <img
-          src={traceabilityData.heroImage}
-          alt="Fazenda nos Inhamuns"
-          className="absolute inset-0 h-full w-full object-cover opacity-70"
-        />
-        <div className="absolute inset-0 bg-slate-950/80" />
-        <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
-            <div className="space-y-6">
-              {data.hasIG && <Badge className="bg-amber-400 text-slate-950">Indicação Geográfica</Badge>}
-              <div className="max-w-2xl space-y-4">
-                <p className="text-sm uppercase tracking-[0.3em] text-amber-100">Rastreabilidade Pública</p>
-                <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                  {traceabilityData.batchName}
-                </h1>
-                <p className="text-base leading-8 text-slate-200 sm:text-lg">
-                  Raça <strong>{data.animal?.breed ?? '—'}</strong>, nascido em <strong>{traceabilityData.origin}</strong>.
-                  Produzido por <strong>{traceabilityData.producer}</strong> na propriedade <strong>{traceabilityData.property}</strong>.
-                </p>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                <div className="rounded-3xl bg-white/10 p-5">
-                  <p className="text-sm text-slate-300">Produtor</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{traceabilityData.producer}</p>
-                </div>
-                <div className="rounded-3xl bg-white/10 p-5">
-                  <p className="text-sm text-slate-300">Propriedade</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{traceabilityData.property}</p>
-                </div>
-                <div className="rounded-3xl bg-white/10 p-5">
-                  <p className="text-sm text-slate-300">Origem</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{traceabilityData.origin}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur">
-              <div className="space-y-4">
-                <p className="text-sm uppercase tracking-[0.24em] text-emerald-200">Identificação</p>
-                <h2 className="text-2xl font-semibold text-white">{traceabilityData.seal}</h2>
-                <div className="space-y-2 text-sm text-slate-300">
-                  {data.animal?.sisovId && (
-                    <p>ID SISOV: <span className="font-mono text-white">{data.animal.sisovId}</span></p>
-                  )}
-                  {data.animal?.tagId && (
-                    <p>Brinco: <span className="font-mono text-white">{data.animal.tagId}</span></p>
-                  )}
-                  {data.animal?.sex && (
-                    <p>Sexo: <span className="text-white">{data.animal.sex === 'MALE' ? 'Macho' : 'Fêmea'}</span></p>
-                  )}
-                  {data.animal?.birthDate && (
-                    <p>Nascimento: <span className="text-white">{new Date(data.animal.birthDate).toLocaleDateString('pt-BR')}</span></p>
-                  )}
-                  {data.animal?.status && (
-                    <p>Status: <span className="text-white">{data.animal.status}</span></p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-100">
+      {/* Hero */}
+      <div className="bg-teal-700 text-white">
+        <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+          <p className="mb-2 text-xs uppercase tracking-widest text-teal-200">
+            Rastreabilidade Pública — SISOV
+          </p>
+          <h1 className="text-2xl font-bold sm:text-3xl">
+            Documento de Rastreamento
+          </h1>
+          <p className="mt-1 text-sm text-teal-200">
+            {data.tagId ? `Animal ${data.tagId}` : `ID ${data.sisovId?.slice(0, 8) ?? "—"}`}
+            {locationLine ? ` • ${locationLine}` : ""}
+          </p>
+          {data.hasIG && (
+            <span className="mt-3 inline-block rounded-full bg-amber-400 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-900">
+              Indicação Geográfica
+            </span>
+          )}
         </div>
-      </section>
+      </div>
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_0.7fr] lg:items-start">
-          <div className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-black/10">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Linha do tempo</p>
-                  <h2 className="mt-3 text-3xl font-semibold text-white">Rastreabilidade passo a passo</h2>
-                </div>
-                <Clock3 className="h-10 w-10 text-emerald-400" />
-              </div>
-              <div className="mt-8 space-y-6">
-                {traceabilityData.events.length === 0 ? (
-                  <p className="text-slate-400">Nenhum evento registrado ainda para este animal.</p>
-                ) : (
-                  traceabilityData.events.map((event, index) => {
-                    const Icon = event.icon;
-                    return (
-                      <div key={`${event.title}-${index}`} className="relative pl-14 sm:pl-16">
-                        <div className="absolute left-0 top-2 flex h-full w-12 flex-col items-center">
-                          <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                          {index < traceabilityData.events.length - 1 && (
-                            <span className="mt-2 h-full w-px bg-slate-700" />
-                          )}
-                        </div>
-                        <div className="rounded-3xl border border-white/10 bg-slate-950/90 p-5 shadow-sm">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-                              <Icon className="h-6 w-6" />
-                            </div>
-                            <div>
-                              <h3 className="text-xl font-semibold text-white">{event.title}</h3>
-                              <p className="text-sm text-slate-400">{event.date}</p>
-                            </div>
-                          </div>
-                          <p className="mt-4 text-slate-300">{event.description}</p>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Document */}
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
 
-          <div className="space-y-6">
-            <Card className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-black/10">
-              <CardHeader>
-                <CardTitle className="text-xl text-white">Garantia de qualidade</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {traceabilityData.assurances.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={item.title}
-                      className="flex items-start gap-4 rounded-3xl border border-white/10 bg-slate-950/90 p-4"
-                    >
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
-                        <Icon className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white">{item.title}</h3>
-                        <p className="mt-1 text-sm text-slate-400">{item.subtitle}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+        {/* 1. Informações do Produtor */}
+        <DocSection number={1} title="Informações do Produtor">
+          <Row label="Nome do Produtor" value={producerName} />
+          <Row label="Endereço" value={locationLine} />
+          <Row label="Contato" value={null} />
+        </DocSection>
 
-            <div className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 shadow-xl shadow-black/10">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-800 text-emerald-300">
-                    <Droplet className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Rastreabilidade SISOV</p>
-                    <h3 className="text-xl font-semibold text-white">Autenticidade garantida</h3>
-                  </div>
-                </div>
-                <p className="text-slate-400">
-                  Este registro foi gerado pelo SISOV — Sistema de Rastreabilidade de Ovinos.
-                  {data.hasIG && ' Produto certificado com Indicação Geográfica.'}
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* 2. Identificação da Propriedade */}
+        <DocSection number={2} title="Identificação da Propriedade">
+          <Row label="Nome da Propriedade" value={property?.farmName} />
+        </DocSection>
+
+        {/* 3. Dados do Rebanho */}
+        <DocSection number={3} title="Dados do Rebanho">
+          <Row label="Identificação Individual" value={data.tagId ?? "Sem brinco"} />
+          <Row
+            label="Sexo"
+            value={data.sex === "MALE" ? "Macho" : data.sex === "FEMALE" ? "Fêmea" : null}
+          />
+          <Row label="Raça" value={data.breed} />
+          <Row label="Data de Nascimento" value={formatDate(data.birthDate)} />
+          <Row label="Código de Rastreamento SISOV" value={data.sisovId} />
+          <Row label="Procedência" value={data.birthCity} />
+        </DocSection>
+
+        {/* 4. Histórico de Saúde e Manejo */}
+        <DocSection number={4} title="Histórico de Saúde e Manejo">
+          <SubHeader title="Vacinações" />
+          <EventRows events={vaccinationEvents} />
+          <SubHeader title="Tratamentos Veterinários" />
+          <EventRows events={vetEvents} />
+          <Row label="Histórico de Doenças" value={null} />
+          <Row label="Exames Laboratoriais" value={null} />
+        </DocSection>
+
+        {/* 5. Alimentação e Suplementação */}
+        <DocSection number={5} title="Alimentação e Suplementação">
+          {feedingEvents.length > 0 ? (
+            <EventRows events={feedingEvents} />
+          ) : (
+            <>
+              <Row label="Tipo de Alimentação" value={null} />
+              <Row label="Fornecedor" value={null} />
+              <Row label="Registro de Suplementos" value={null} />
+            </>
+          )}
+        </DocSection>
+
+        {/* 6. Movimentação dos Animais */}
+        <DocSection number={6} title="Movimentação dos Animais">
+          <Row label="Entradas e Saídas" value={animalStatus} />
+          <Row
+            label="Data de Movimentação"
+            value={
+              slaughterEvents[0]?.occurredAt
+                ? formatDate(slaughterEvents[0].occurredAt)
+                : null
+            }
+          />
+          <Row
+            label="Origem e Destino"
+            value={data.birthCity ? `Origem: ${data.birthCity}` : null}
+          />
+          <Row
+            label="Transporte"
+            value={
+              Array.isArray(data.movements) && data.movements.length > 0
+                ? `${data.movements.length} movimentação(ões) registrada(s)`
+                : null
+            }
+          />
+        </DocSection>
+
+        {/* 7. Reprodução */}
+        <DocSection number={7} title="Reprodução">
+          {reproductionEvents.length > 0 ? (
+            <EventRows events={reproductionEvents} />
+          ) : (
+            <>
+              <Row label="Inseminação / Acasalamento" value={null} />
+              <Row label="Dados da Gestação" value={null} />
+              <Row label="Registro de Partos" value={null} />
+            </>
+          )}
+        </DocSection>
+
+        {/* 8. Rastreamento e Certificação */}
+        <DocSection number={8} title="Rastreamento e Certificação">
+          <Row label="Código SISOV" value={data.sisovId} />
+          <Row
+            label="Certificação de IG"
+            value={data.hasIG ? "Certificado — Indicação Geográfica" : "Não certificado"}
+          />
+          <SubHeader title="Auditorias e Inspeções" />
+          <EventRows events={sanitaryEvents} />
+        </DocSection>
+
+        {/* 9. Produção de Carne */}
+        <DocSection number={9} title="Produção de Carne">
+          <Row
+            label="Registro do Abate"
+            value={slaughterEvents[0] ? formatDate(slaughterEvents[0].occurredAt) : null}
+          />
+          <Row label="Destino da Carne" value={slaughterEvents[0]?.description ?? null} />
+          <Row label="Controle de Qualidade" value={slaughterEvents[0]?.value ?? null} />
+        </DocSection>
+
+        {/* 10. Documentação Legal e Compliance */}
+        <DocSection number={10} title="Documentação Legal e Compliance">
+          {sanitaryEvents.length > 0 ? (
+            <EventRows events={sanitaryEvents} />
+          ) : (
+            <>
+              <Row label="Certificados de Sanidade" value={null} />
+              <Row label="Licenças e Permissões" value={null} />
+              <Row label="Relatórios de Conformidade" value={null} />
+            </>
+          )}
+        </DocSection>
+
+        {/* 11. Informações Adicionais */}
+        <DocSection number={11} title="Informações Adicionais">
+          <Row label="Observações Gerais" value={data.seal ?? null} />
+          <Row label="Medidas Preventivas" value={null} />
+          <Row
+            label="Outras Informações"
+            value={data.origin ? `Origem regional: ${data.origin}` : null}
+          />
+        </DocSection>
+
+        {/* Footer */}
+        <div className="pb-8 pt-4 text-center text-xs text-gray-400">
+          Este documento foi gerado automaticamente pelo sistema SISOV em {generatedAt}.
         </div>
-      </section>
-
-      <Separator className="border-slate-700" />
-
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="rounded-[32px] border border-white/10 bg-slate-900/80 p-8 shadow-2xl shadow-black/20">
-          <div className="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-center">
-            <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Rastreabilidade completa</p>
-              <h2 className="text-3xl font-semibold text-white sm:text-4xl">
-                Jornada completa do animal — do nascimento ao consumidor
-              </h2>
-              <p className="max-w-2xl text-base leading-8 text-slate-300">
-                Produzido por <strong className="text-white">{traceabilityData.producer}</strong> em{' '}
-                <strong className="text-white">{traceabilityData.property}</strong>.
-                Cada scan conecta o consumidor ao histórico real registrado no SISOV.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl bg-emerald-500/10 p-5">
-                <p className="text-sm text-emerald-300">Transparência</p>
-                <p className="mt-2 text-white">Origem, criação e sanidade em um único QR Code.</p>
-              </div>
-              <div className="rounded-3xl bg-slate-800/80 p-5">
-                <p className="text-sm text-slate-400">Confiabilidade</p>
-                <p className="mt-2 text-white">Dados registrados no SISOV — Sistema oficial de rastreabilidade.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

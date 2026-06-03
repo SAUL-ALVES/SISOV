@@ -118,10 +118,20 @@ export interface PublicTraceabilityEvent {
 }
 
 export interface PublicTraceabilityData {
-  animal?: ApiAnimalWithProperty;
-  producer?: { name?: string };
-  property?: { farmName?: string; city?: string; state?: string };
-  events?: PublicTraceabilityEvent[];
+  sisovId?: string;
+  tagId?: string | null;
+  breed?: string;
+  sex?: string;
+  birthDate?: string;
+  birthCity?: string;
+  status?: string;
+  property?: {
+    farmName?: string;
+    city?: string;
+    state?: string;
+    producer?: { name?: string };
+  };
+  managementEvents?: PublicTraceabilityEvent[];
   movements?: unknown[];
   hasIG?: boolean;
   seal?: string;
