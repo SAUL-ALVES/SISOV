@@ -297,9 +297,7 @@ export function QRCodeGeneration({
                     <img src={label.qrCodeUrl} alt={`QR ${label.id}`} className="h-40 w-40 object-contain" />
                   </div>
                   <div className="space-y-2 text-[11px] leading-5 text-slate-600">
-                    <p><span className="font-semibold text-slate-900">Origem:</span> Fazenda Inhamuns</p>
-                    <p><span className="font-semibold text-slate-900">Produto:</span> Manta de Carneiro</p>
-                    <p><span className="font-semibold text-slate-900">Rastreamento:</span> sisov.com.br/rastreamento/{label.id}</p>
+                    <p><span className="font-semibold text-slate-900">Rastreamento:</span> {traceabilityBase}/{label.id}</p>
                   </div>
                 </div>
               ))}

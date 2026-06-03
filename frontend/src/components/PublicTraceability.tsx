@@ -132,15 +132,15 @@ export default function PublicTraceability({ data }: PublicTraceabilityProps) {
         <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div className="space-y-6">
-              <Badge className="bg-amber-400 text-slate-950">Indicação Geográfica</Badge>
+              {data.hasIG && <Badge className="bg-amber-400 text-slate-950">Indicação Geográfica</Badge>}
               <div className="max-w-2xl space-y-4">
                 <p className="text-sm uppercase tracking-[0.3em] text-amber-100">Rastreabilidade Pública</p>
                 <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
                   {traceabilityData.batchName}
                 </h1>
                 <p className="text-base leading-8 text-slate-200 sm:text-lg">
-                  Conheça o caminho completo da Manta de Carneiro de Tauá: origem, cuidado, certificação e sabor
-                  autêntico.
+                  Raça <strong>{data.animal?.breed ?? '—'}</strong>, nascido em <strong>{traceabilityData.origin}</strong>.
+                  Produzido por <strong>{traceabilityData.producer}</strong> na propriedade <strong>{traceabilityData.property}</strong>.
                 </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -160,14 +160,25 @@ export default function PublicTraceability({ data }: PublicTraceabilityProps) {
             </div>
             <div className="rounded-[32px] border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur">
               <div className="space-y-4">
-                <p className="text-sm uppercase tracking-[0.24em] text-emerald-200">Selo</p>
+                <p className="text-sm uppercase tracking-[0.24em] text-emerald-200">Identificação</p>
                 <h2 className="text-2xl font-semibold text-white">{traceabilityData.seal}</h2>
-                <p className="text-slate-300">
-                  A marca oficial que garante procedência, qualidade e tradição da Manta de Carneiro de Tauá.
-                </p>
-                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                  Ver certificação completa
-                </Button>
+                <div className="space-y-2 text-sm text-slate-300">
+                  {data.animal?.sisovId && (
+                    <p>ID SISOV: <span className="font-mono text-white">{data.animal.sisovId}</span></p>
+                  )}
+                  {data.animal?.tagId && (
+                    <p>Brinco: <span className="font-mono text-white">{data.animal.tagId}</span></p>
+                  )}
+                  {data.animal?.sex && (
+                    <p>Sexo: <span className="text-white">{data.animal.sex === 'MALE' ? 'Macho' : 'Fêmea'}</span></p>
+                  )}
+                  {data.animal?.birthDate && (
+                    <p>Nascimento: <span className="text-white">{new Date(data.animal.birthDate).toLocaleDateString('pt-BR')}</span></p>
+                  )}
+                  {data.animal?.status && (
+                    <p>Status: <span className="text-white">{data.animal.status}</span></p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -252,17 +263,14 @@ export default function PublicTraceability({ data }: PublicTraceabilityProps) {
                     <Droplet className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Selo de Procedência</p>
+                    <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Rastreabilidade SISOV</p>
                     <h3 className="text-xl font-semibold text-white">Autenticidade garantida</h3>
                   </div>
                 </div>
                 <p className="text-slate-400">
-                  O selo atesta que este alimento foi produzido de acordo com as normas da Indicação Geográfica da Manta
-                  de Carneiro de Tauá e combina tradição com alta qualidade.
+                  Este registro foi gerado pelo SISOV — Sistema de Rastreabilidade de Ovinos.
+                  {data.hasIG && ' Produto certificado com Indicação Geográfica.'}
                 </p>
-                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                  Ver detalhes da certificação
-                </Button>
               </div>
             </div>
           </div>
@@ -275,23 +283,24 @@ export default function PublicTraceability({ data }: PublicTraceabilityProps) {
         <div className="rounded-[32px] border border-white/10 bg-slate-900/80 p-8 shadow-2xl shadow-black/20">
           <div className="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-center">
             <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Conte uma história</p>
+              <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Rastreabilidade completa</p>
               <h2 className="text-3xl font-semibold text-white sm:text-4xl">
-                Conte ao consumidor final a jornada completa do seu produto
+                Jornada completa do animal — do nascimento ao consumidor
               </h2>
               <p className="max-w-2xl text-base leading-8 text-slate-300">
-                A cada scan, o cliente acessa informações reais sobre o produtor, a metodologia, o selo IG e os
-                cuidados que tornam a Manta de Carneiro de Tauá única.
+                Produzido por <strong className="text-white">{traceabilityData.producer}</strong> em{' '}
+                <strong className="text-white">{traceabilityData.property}</strong>.
+                Cada scan conecta o consumidor ao histórico real registrado no SISOV.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl bg-emerald-500/10 p-5">
                 <p className="text-sm text-emerald-300">Transparência</p>
-                <p className="mt-2 text-white">Origem, criação e certificação em um único QR Code.</p>
+                <p className="mt-2 text-white">Origem, criação e sanidade em um único QR Code.</p>
               </div>
               <div className="rounded-3xl bg-slate-800/80 p-5">
-                <p className="text-sm text-slate-400">Tradição</p>
-                <p className="mt-2 text-white">História da região dos Inhamuns contada com respeito ao bioma local.</p>
+                <p className="text-sm text-slate-400">Confiabilidade</p>
+                <p className="mt-2 text-white">Dados registrados no SISOV — Sistema oficial de rastreabilidade.</p>
               </div>
             </div>
           </div>

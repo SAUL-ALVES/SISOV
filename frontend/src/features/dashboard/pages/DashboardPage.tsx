@@ -2,7 +2,7 @@ import { Dashboard } from '../../../components/Dashboard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useAuthStore } from '../../../store/authStore';
-import { useAnimals, useDashboardStats } from '../../animals/hooks/useAnimals';
+import { useAnimals, useDashboardStats, useAddManagementEvent } from '../../animals/hooks/useAnimals';
 import { useProperties } from '../../properties/hooks/useProperties';
 import { formatApiError } from '../../../utils/apiErrors';
 
@@ -13,10 +13,23 @@ export default function DashboardPage() {
   const { data: animals, isLoading: animalsLoading, isError, error } = useAnimals();
   const { data: properties, isLoading: propertiesLoading } = useProperties();
   const dashboardStats = useDashboardStats(animals);
+  const addManagementEvent = useAddManagementEvent();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleAddWeightRecord = async (sisovId: string, weight: string, date: string) => {
+    await addManagementEvent.mutateAsync({
+      sisovId,
+      payload: {
+        eventType: 'WEIGHT_MEASUREMENT',
+        value: weight,
+        occurredAt: new Date(date).toISOString(),
+        description: `Pesagem: ${weight}kg`,
+      },
+    });
   };
 
   return (
@@ -26,6 +39,8 @@ export default function DashboardPage() {
       onQRCodeClick={() => navigate('/app/qrcode')}
       isLoading={animalsLoading || propertiesLoading}
       errorMessage={isError ? formatApiError(error) : undefined}
+      animals={animals}
+      onAddWeightRecord={handleAddWeightRecord}
       stats={{
         totalAnimals: dashboardStats.total,
         healthyAnimals: dashboardStats.healthy,

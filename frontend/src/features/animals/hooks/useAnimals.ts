@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { animalService } from '../services/animalService';
 import { mapApiAnimalToUi } from '../../../utils/animalMappers';
-import type { CreateAnimalPayload } from '../../../types/api-contract';
+import type { CreateAnimalPayload, CreateManagementEventPayload } from '../../../types/api-contract';
 import type { Animal } from '../../../types/domain';
 
 export const animalsQueryKey = ['animals'] as const;
@@ -42,6 +42,17 @@ export function useCreateAnimal() {
     mutationFn: (payload: CreateAnimalPayload) => animalService.create(payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: animalsQueryKey });
+    },
+  });
+}
+
+export function useAddManagementEvent() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sisovId, payload }: { sisovId: string; payload: CreateManagementEventPayload }) =>
+      animalService.addManagementEvent(sisovId, payload),
+    onSuccess: (_, { sisovId }) => {
+      void queryClient.invalidateQueries({ queryKey: ['animals', sisovId, 'history'] });
     },
   });
 }

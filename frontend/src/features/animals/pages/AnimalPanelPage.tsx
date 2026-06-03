@@ -1,19 +1,28 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { AnimalPanel } from '../../../components/AnimalPanel';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { useAnimal, useAnimalHistory } from '../hooks/useAnimals';
+import { useAuthStore } from '../../../store/authStore';
+import { useAnimal, useAnimalHistory, useAddManagementEvent } from '../hooks/useAnimals';
 import { formatApiError } from '../../../utils/apiErrors';
+import type { CreateManagementEventPayload } from '../../../types/api-contract';
 
 export default function AnimalPanelPage() {
   const { animalId } = useParams<{ animalId: string }>();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const user = useAuthStore((s) => s.user);
   const { data: animal, isLoading, isError, error } = useAnimal(animalId);
   const { data: history } = useAnimalHistory(animalId);
+  const addManagementEvent = useAddManagementEvent();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleAddEvent = async (payload: CreateManagementEventPayload) => {
+    if (!animal?.sisovId) throw new Error('ID do animal não encontrado');
+    await addManagementEvent.mutateAsync({ sisovId: animal.sisovId, payload });
   };
 
   if (isLoading) {
@@ -47,9 +56,11 @@ export default function AnimalPanelPage() {
     <AnimalPanel
       animal={animal}
       historyEvents={history?.events}
+      producerName={user?.name}
       onBack={() => navigate('/app/rebanho')}
       onLogout={handleLogout}
       viewOnly={false}
+      onAddEvent={handleAddEvent}
     />
   );
 }
