@@ -4,6 +4,8 @@ import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
 import { MapPin, ShieldCheck, HeartPulse, Leaf, Sparkles, Clock3, Droplet } from "lucide-react";
+import type { PublicTraceabilityData } from "../types/api-contract";
+import { DEFAULT_IMAGE } from "../utils/animalMappers";
 
 interface TraceEvent {
   title: string;
@@ -18,66 +20,106 @@ interface AssuranceItem {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
-const traceabilityData = {
-  heroImage:
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0YXUuZSUyMGZhcm1zfGVufDB8fHx8MTY4NTM1NzYwMA&ixlib=rb-4.0.3&q=80&w=1200",
-  batchName: "Lote IG - Manta Tauá 07",
-  producer: "Família de Sousa",
-  property: "Fazenda São José, Tauá - CE",
-  origin: "Região dos Inhamuns",
-  seal: "Indicação de Procedência da Manta de Carneiro de Tauá",
-  events: [
-    {
-      title: "Nascimento em Tauá",
-      date: "12 de Abril de 2023",
-      description: "Nascimento registrado no coração dos Inhamuns, com controle de linhagem e origem certificada.",
-      icon: MapPin
-    },
-    {
-      title: "Vacinações e Sanidade",
-      date: "Abril - Junho de 2023",
-      description: "Protocolos completos de imunização e saúde animal com monitoramento veterinário local.",
-      icon: ShieldCheck
-    },
-    {
-      title: "Alimentação regional",
-      date: "Julho - Outubro de 2023",
-      description: "Dieta baseada no bioma local, pastagens nativas e suplementação natural de alta qualidade.",
-      icon: Leaf
-    },
-    {
-      title: "Abate sustentável",
-      date: "Novembro de 2023",
-      description: "Processo com bem-estar animal, respeitando períodos de dieta hídrica e sólida antes do abate.",
-      icon: HeartPulse
-    },
-    {
-      title: "Processamento da Manta",
-      date: "Dezembro de 2023",
-      description: "Maturação e salga cuidadosas para garantir sabor, suculência e origem premium do produto.",
-      icon: Sparkles
-    }
-  ] as TraceEvent[],
-  assurances: [
-    {
-      title: "Criação Livre",
-      subtitle: "Animais criados em liberdade e pastagens abertas.",
-      icon: Leaf
-    },
-    {
-      title: "Bem-estar Animal",
-      subtitle: "Monitoramento constante de conforto e saúde.",
-      icon: HeartPulse
-    },
-    {
-      title: "Certificação Sanitária",
-      subtitle: "Protocolos aprovados por autoridades locais.",
-      icon: ShieldCheck
-    }
-  ] as AssuranceItem[]
+const EVENT_ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
+  VACCINATION: ShieldCheck,
+  VET_TREATMENT: HeartPulse,
+  WEIGHT_MEASUREMENT: Sparkles,
+  NUTRITIONAL_FEEDING: Leaf,
+  REPRODUCTION_COVERAGE: Leaf,
+  SANITARY_DOCUMENT: ShieldCheck,
+  SLAUGHTER_FINALIZATION: HeartPulse,
 };
 
-export default function PublicTraceability() {
+const EVENT_LABELS: Record<string, string> = {
+  VACCINATION: "Vacinação",
+  VET_TREATMENT: "Tratamento veterinário",
+  WEIGHT_MEASUREMENT: "Pesagem",
+  NUTRITIONAL_FEEDING: "Alimentação",
+  REPRODUCTION_COVERAGE: "Reprodução",
+  SANITARY_DOCUMENT: "Documento sanitário",
+  SLAUGHTER_FINALIZATION: "Abate",
+};
+
+function buildViewModel(data: PublicTraceabilityData) {
+  const animal = data.animal;
+  const property = data.property ?? animal?.property;
+  const producerName =
+    (typeof data.producer === "object" && data.producer?.name) ||
+    (typeof data.producer === "string" ? data.producer : "Produtor certificado");
+
+  const events: TraceEvent[] = (data.events ?? []).map((event) => ({
+    title: EVENT_LABELS[event.eventType ?? ""] ?? event.eventType ?? "Evento",
+    date: event.occurredAt
+      ? new Date(event.occurredAt).toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        })
+      : "—",
+    description: event.description ?? "Registro de manejo no SISOV.",
+    icon: EVENT_ICONS[event.eventType ?? ""] ?? MapPin,
+  }));
+
+  if (!events.length && animal?.birthDate) {
+    events.push({
+      title: "Nascimento registrado",
+      date: new Date(animal.birthDate).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }),
+      description: `Origem em ${animal.birthCity}. Raça ${animal.breed}.`,
+      icon: MapPin,
+    });
+  }
+
+  const assurances: AssuranceItem[] = [
+    {
+      title: "Criação regional",
+      subtitle: property?.city
+        ? `Produção em ${property.city}${property.state ? `, ${property.state}` : ""}.`
+        : "Origem certificada na região dos Inhamuns.",
+      icon: Leaf,
+    },
+    {
+      title: "Bem-estar animal",
+      subtitle: "Histórico sanitário registrado no SISOV.",
+      icon: HeartPulse,
+    },
+    {
+      title: "Rastreabilidade",
+      subtitle: animal?.tagId
+        ? `Identificação ${animal.tagId}`
+        : `ID SISOV ${animal?.sisovId?.slice(0, 8) ?? "—"}`,
+      icon: ShieldCheck,
+    },
+  ];
+
+  return {
+    heroImage: DEFAULT_IMAGE,
+    batchName: animal?.tagId ? `Animal ${animal.tagId}` : "Rastreabilidade SISOV",
+    producer: producerName,
+    property: property?.farmName
+      ? `${property.farmName}${property.city ? `, ${property.city}` : ""}`
+      : "Propriedade registrada",
+    origin: data.origin ?? animal?.birthCity ?? "Região dos Inhamuns",
+    seal:
+      data.seal ??
+      (data.hasIG
+        ? "Indicação Geográfica — Manta de Carneiro de Tauá"
+        : "Rastreabilidade SISOV"),
+    events,
+    assurances,
+  };
+}
+
+interface PublicTraceabilityProps {
+  data: PublicTraceabilityData;
+}
+
+export default function PublicTraceability({ data }: PublicTraceabilityProps) {
+  const traceabilityData = buildViewModel(data);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <section className="relative overflow-hidden bg-slate-900">
@@ -93,8 +135,13 @@ export default function PublicTraceability() {
               <Badge className="bg-amber-400 text-slate-950">Indicação Geográfica</Badge>
               <div className="max-w-2xl space-y-4">
                 <p className="text-sm uppercase tracking-[0.3em] text-amber-100">Rastreabilidade Pública</p>
-                <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">Da fazenda dos Inhamuns até sua mesa</h1>
-                <p className="text-base leading-8 text-slate-200 sm:text-lg">Conheça o caminho completo da Manta de Carneiro de Tauá: origem, cuidado, certificação e sabor autêntico.</p>
+                <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                  {traceabilityData.batchName}
+                </h1>
+                <p className="text-base leading-8 text-slate-200 sm:text-lg">
+                  Conheça o caminho completo da Manta de Carneiro de Tauá: origem, cuidado, certificação e sabor
+                  autêntico.
+                </p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 <div className="rounded-3xl bg-white/10 p-5">
@@ -115,8 +162,12 @@ export default function PublicTraceability() {
               <div className="space-y-4">
                 <p className="text-sm uppercase tracking-[0.24em] text-emerald-200">Selo</p>
                 <h2 className="text-2xl font-semibold text-white">{traceabilityData.seal}</h2>
-                <p className="text-slate-300">A marca oficial que garante procedência, qualidade e tradição da Manta de Carneiro de Tauá.</p>
-                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">Ver certificação completa</Button>
+                <p className="text-slate-300">
+                  A marca oficial que garante procedência, qualidade e tradição da Manta de Carneiro de Tauá.
+                </p>
+                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                  Ver certificação completa
+                </Button>
               </div>
             </div>
           </div>
@@ -135,29 +186,35 @@ export default function PublicTraceability() {
                 <Clock3 className="h-10 w-10 text-emerald-400" />
               </div>
               <div className="mt-8 space-y-6">
-                {traceabilityData.events.map((event, index) => {
-                  const Icon = event.icon;
-                  return (
-                    <div key={event.title} className="relative pl-14 sm:pl-16">
-                      <div className="absolute left-0 top-2 flex h-full w-12 flex-col items-center">
-                        <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                        {index < traceabilityData.events.length - 1 && <span className="mt-2 h-full w-px bg-slate-700" />}
-                      </div>
-                      <div className="rounded-3xl border border-white/10 bg-slate-950/90 p-5 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-                            <Icon className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-semibold text-white">{event.title}</h3>
-                            <p className="text-sm text-slate-400">{event.date}</p>
-                          </div>
+                {traceabilityData.events.length === 0 ? (
+                  <p className="text-slate-400">Nenhum evento registrado ainda para este animal.</p>
+                ) : (
+                  traceabilityData.events.map((event, index) => {
+                    const Icon = event.icon;
+                    return (
+                      <div key={`${event.title}-${index}`} className="relative pl-14 sm:pl-16">
+                        <div className="absolute left-0 top-2 flex h-full w-12 flex-col items-center">
+                          <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+                          {index < traceabilityData.events.length - 1 && (
+                            <span className="mt-2 h-full w-px bg-slate-700" />
+                          )}
                         </div>
-                        <p className="mt-4 text-slate-300">{event.description}</p>
+                        <div className="rounded-3xl border border-white/10 bg-slate-950/90 p-5 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
+                              <Icon className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-semibold text-white">{event.title}</h3>
+                              <p className="text-sm text-slate-400">{event.date}</p>
+                            </div>
+                          </div>
+                          <p className="mt-4 text-slate-300">{event.description}</p>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -171,7 +228,10 @@ export default function PublicTraceability() {
                 {traceabilityData.assurances.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <div key={item.title} className="flex items-start gap-4 rounded-3xl border border-white/10 bg-slate-950/90 p-4">
+                    <div
+                      key={item.title}
+                      className="flex items-start gap-4 rounded-3xl border border-white/10 bg-slate-950/90 p-4"
+                    >
                       <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
                         <Icon className="h-6 w-6" />
                       </div>
@@ -196,8 +256,13 @@ export default function PublicTraceability() {
                     <h3 className="text-xl font-semibold text-white">Autenticidade garantida</h3>
                   </div>
                 </div>
-                <p className="text-slate-400">O selo atesta que este alimento foi produzido de acordo com as normas da Indicação Geográfica da Manta de Carneiro de Tauá e combina tradição com alta qualidade.</p>
-                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">Ver detalhes da certificação</Button>
+                <p className="text-slate-400">
+                  O selo atesta que este alimento foi produzido de acordo com as normas da Indicação Geográfica da Manta
+                  de Carneiro de Tauá e combina tradição com alta qualidade.
+                </p>
+                <Button className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                  Ver detalhes da certificação
+                </Button>
               </div>
             </div>
           </div>
@@ -211,8 +276,13 @@ export default function PublicTraceability() {
           <div className="grid gap-8 lg:grid-cols-[1fr_0.8fr] lg:items-center">
             <div className="space-y-4">
               <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Conte uma história</p>
-              <h2 className="text-3xl font-semibold text-white sm:text-4xl">Conte ao consumidor final a jornada completa do seu produto</h2>
-              <p className="max-w-2xl text-base leading-8 text-slate-300">A cada scan, o cliente acessa informações reais sobre o produtor, a metodologia, o selo IG e os cuidados que tornam a Manta de Carneiro de Tauá única.</p>
+              <h2 className="text-3xl font-semibold text-white sm:text-4xl">
+                Conte ao consumidor final a jornada completa do seu produto
+              </h2>
+              <p className="max-w-2xl text-base leading-8 text-slate-300">
+                A cada scan, o cliente acessa informações reais sobre o produtor, a metodologia, o selo IG e os
+                cuidados que tornam a Manta de Carneiro de Tauá única.
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-3xl bg-emerald-500/10 p-5">

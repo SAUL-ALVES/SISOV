@@ -24,28 +24,28 @@ import {
 import { useState } from "react";
 import { motion } from "motion/react";
 import logoImage from "../assets/logo-frontend.png";
+import type { ManagementEvent } from "../types/api-contract";
+import type { Animal } from "../types/domain";
 
-interface Animal {
-  id: string;
-  name: string;
-  type: string;
-  race: string;
-  weight: string;
-  birthDate: string;
-  status: string;
-  location: string;
-  lastCheck: string;
-  image: string;
-}
+const EVENT_LABELS: Record<string, string> = {
+  VACCINATION: "Vacinação",
+  VET_TREATMENT: "Tratamento veterinário",
+  WEIGHT_MEASUREMENT: "Pesagem",
+  NUTRITIONAL_FEEDING: "Alimentação",
+  REPRODUCTION_COVERAGE: "Reprodução",
+  SANITARY_DOCUMENT: "Documento sanitário",
+  SLAUGHTER_FINALIZATION: "Abate",
+};
 
 interface AnimalPanelProps {
   animal: Animal;
+  historyEvents?: ManagementEvent[];
   onBack: () => void;
   onLogout: () => void;
   viewOnly?: boolean;
 }
 
-export function AnimalPanel({ animal, onBack, onLogout, viewOnly = false }: AnimalPanelProps) {
+export function AnimalPanel({ animal, historyEvents, onBack, onLogout, viewOnly = false }: AnimalPanelProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: animal.name,
@@ -64,12 +64,12 @@ export function AnimalPanel({ animal, onBack, onLogout, viewOnly = false }: Anim
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const healthRecords = [
-    { date: "20/03/2024", type: "Vacinação", description: "Vacina contra clostridioses", status: "Concluído" },
-    { date: "15/03/2024", type: "Exame", description: "Check-up geral", status: "Concluído" },
-    { date: "10/03/2024", type: "Pesagem", description: "Peso registrado: 45kg", status: "Concluído" },
-    { date: "05/03/2024", type: "Vermifugação", description: "Aplicação de vermífugo", status: "Concluído" }
-  ];
+  const healthRecords = (historyEvents ?? []).map((event) => ({
+    date: new Date(event.occurredAt).toLocaleDateString("pt-BR"),
+    type: EVENT_LABELS[event.eventType] ?? event.eventType,
+    description: event.description ?? "—",
+    status: "Registrado",
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50">

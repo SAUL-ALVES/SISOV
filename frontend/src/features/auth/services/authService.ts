@@ -1,29 +1,28 @@
 import { httpClient, setAccessToken } from '../../../lib/httpClient';
-import type { LoginCredentials, AuthResponse, User } from '../../../types/domain';
+import type { LoginResponse, Producer, RegisterProducerPayload } from '../../../types/api-contract';
+import type { LoginCredentials } from '../../../types/domain';
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await httpClient.post<AuthResponse>('/auth/login', credentials);
-    setAccessToken(response.data.accessToken);
+  async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    const response = await httpClient.post<LoginResponse>('/auth/login', credentials);
+    setAccessToken(response.data.token);
     return response.data;
   },
 
+  async register(payload: RegisterProducerPayload): Promise<Producer> {
+    const response = await httpClient.post<{ message: string; data: Producer }>(
+      '/auth/register',
+      payload,
+    );
+    return response.data.data;
+  },
+
   async logout(): Promise<void> {
-    try {
-      await httpClient.post('/auth/logout', {});
-    } finally {
-      setAccessToken(null);
-    }
+    setAccessToken(null);
   },
 
-  async refreshToken(): Promise<string> {
-    const response = await httpClient.post<{ accessToken: string }>('/auth/refresh', {});
-    setAccessToken(response.data.accessToken);
-    return response.data.accessToken;
-  },
-
-  async getCurrentUser(): Promise<User> {
-    const response = await httpClient.get<User>('/auth/me');
+  async getCurrentUser(): Promise<Producer> {
+    const response = await httpClient.get<Producer>('/auth/profile');
     return response.data;
   },
 };

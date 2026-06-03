@@ -30,27 +30,37 @@ import { motion, AnimatePresence } from "motion/react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import logoImage from "../assets/logo-frontend.png";
-
-interface Animal {
-  id: string;
-  name: string;
-  type: string;
-  race: string;
-  weight: string;
-  birthDate: string;
-  status: string;
-  location: string;
-  lastCheck: string;
-  image: string;
-}
+import type { CreateAnimalPayload, Property } from "../types/api-contract";
+import type { Animal } from "../types/domain";
+import { AnimalStatus } from "../types/domain";
 
 interface FlockManagementProps {
   onBack: () => void;
   onLogout: () => void;
   onAnimalClick: (animal: Animal, viewOnly: boolean) => void;
+  animals?: Animal[];
+  properties?: Property[];
+  producerName?: string;
+  isLoading?: boolean;
+  errorMessage?: string;
+  onRefresh?: () => void;
+  onCreateAnimal?: (payload: CreateAnimalPayload) => Promise<void>;
+  isSaving?: boolean;
 }
 
-export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManagementProps) {
+export function FlockManagement({
+  onBack,
+  onLogout,
+  onAnimalClick,
+  animals: animalsProp = [],
+  properties = [],
+  producerName = "Produtor",
+  isLoading = false,
+  errorMessage,
+  onRefresh,
+  onCreateAnimal,
+  isSaving = false,
+}: FlockManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -60,88 +70,16 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
   const [statusFilter, setStatusFilter] = useState("Todos");
   const [locationFilter, setLocationFilter] = useState("Todos");
   const [newAnimal, setNewAnimal] = useState({
-    name: "",
-    individualId: "",
-    sex: "Macho",
+    tagId: "",
+    propertyId: "",
+    sex: "MALE" as "MALE" | "FEMALE",
     race: "",
-    birthDate: "",
+    birthCity: "",
   });
+  const [saveError, setSaveError] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  const animals = [
-    {
-      id: "OV-1234",
-      name: "Ovino #1234",
-      type: "Ovino",
-      race: "Dorper",
-      weight: "45kg",
-      birthDate: "15/01/2023",
-      status: "Saudável",
-      location: "Pasto A",
-      lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-    },
-    {
-      id: "OV-1235",
-      name: "Ovino #1235",
-      type: "Ovino",
-      race: "Santa Inês",
-      weight: "42kg",
-      birthDate: "22/02/2023",
-      status: "Saudável",
-      location: "Pasto B",
-      lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1736066349278-897dde1f055d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNoZWVwJTIwbWVhZG93fGVufDF8fHx8MTc1OTI3MjU3NXww&ixlib=rb-4.1.0&q=80&w=1080"
-    },
-    {
-      id: "CP-0891",
-      name: "Caprino #0891",
-      type: "Caprino",
-      race: "Anglo-Nubiana",
-      weight: "38kg",
-      birthDate: "10/03/2023",
-      status: "Vacinação Pendente",
-      location: "Pasto C",
-      lastCheck: "18/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-    },
-    {
-      id: "OV-1236",
-      name: "Ovino #1236",
-      type: "Ovino",
-      race: "Dorper",
-      weight: "48kg",
-      birthDate: "05/12/2022",
-      status: "Saudável",
-      location: "Pasto A",
-      lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1664546474909-89d3390196d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm93biUyMHNoZWVwJTIwd29vbHxlbnwxfHx8fDE3NTkyNzI1NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080"
-    },
-    {
-      id: "OV-1237",
-      name: "Ovino #1237",
-      type: "Ovino",
-      race: "Santa Inês",
-      weight: "44kg",
-      birthDate: "18/01/2023",
-      status: "Saudável",
-      location: "Pasto B",
-      lastCheck: "17/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-    },
-    {
-      id: "CP-0892",
-      name: "Caprino #0892",
-      type: "Caprino",
-      race: "Saanen",
-      weight: "40kg",
-      birthDate: "25/02/2023",
-      status: "Saudável",
-      location: "Pasto C",
-      lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080"
-    }
-  ];
+  const animals = animalsProp;
 
   // Filtragem combinada
   const filteredAnimals = animals.filter(animal => {
@@ -220,11 +158,18 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
     window.alert(`${selectedCount} ovinos selecionados para transferência de lote.`);
   };
 
+  const healthyCount = animals.filter(
+    (a) => a.apiStatus === "ACTIVE" || a.status === AnimalStatus.HEALTHY,
+  ).length;
+  const attentionCount = animals.length - healthyCount;
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recentCount = animals.filter((a) => new Date(a.createdAt).getTime() >= thirtyDaysAgo).length;
+
   const stats = [
-    { label: "Total", value: "243", color: "text-teal-600", bgColor: "bg-teal-100" },
-    { label: "Saudáveis", value: "238", color: "text-green-600", bgColor: "bg-green-100" },
-    { label: "Atenção", value: "5", color: "text-yellow-600", bgColor: "bg-yellow-100" },
-    { label: "Novos (30d)", value: "12", color: "text-blue-600", bgColor: "bg-blue-100" }
+    { label: "Total", value: String(animals.length), color: "text-teal-600", bgColor: "bg-teal-100" },
+    { label: "Saudáveis", value: String(healthyCount), color: "text-green-600", bgColor: "bg-green-100" },
+    { label: "Atenção", value: String(attentionCount), color: "text-yellow-600", bgColor: "bg-yellow-100" },
+    { label: "Novos (30d)", value: String(recentCount), color: "text-blue-600", bgColor: "bg-blue-100" },
   ];
 
   return (
@@ -271,8 +216,8 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
               
               <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">Produtor Silva</div>
-                  <div className="text-xs text-gray-500">Administrador</div>
+                  <div className="text-sm font-semibold text-gray-900">{producerName}</div>
+                  <div className="text-xs text-gray-500">Produtor</div>
                 </div>
                 <Button variant="ghost" size="icon" className="cursor-pointer">
                   <ChevronDown className="h-4 w-4 text-gray-600" />
@@ -313,7 +258,7 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">Produtor Silva</div>
+                    <div className="text-sm font-semibold text-gray-900">{producerName}</div>
                     <div className="text-xs text-gray-500">Administrador</div>
                   </div>
                   <Button 
@@ -333,6 +278,23 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
       </motion.header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {errorMessage && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex justify-between items-center gap-4">
+            <span>{errorMessage}</span>
+            {onRefresh && (
+              <Button variant="outline" size="sm" onClick={onRefresh} className="cursor-pointer shrink-0">
+                Tentar novamente
+              </Button>
+            )}
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="mb-6 flex justify-center py-8">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600" />
+          </div>
+        )}
+
         {/* Stats */}
         <motion.div 
           initial={{ y: 20, opacity: 0 }}
@@ -633,37 +595,48 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
               <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="modal-name">Nome do Animal</Label>
-                    <Input 
-                      id="modal-name"
-                      placeholder="Ex: Ovino #1234"
-                      value={newAnimal.name}
-                      onChange={(e) => setNewAnimal({...newAnimal, name: e.target.value})}
-                      className="bg-gray-50"
-                    />
+                    <Label htmlFor="modal-property">Propriedade (fazenda)</Label>
+                    <select
+                      id="modal-property"
+                      value={newAnimal.propertyId}
+                      onChange={(e) => setNewAnimal({ ...newAnimal, propertyId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50"
+                    >
+                      <option value="">Selecione a propriedade</option>
+                      {properties.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.farmName} — {p.city}/{p.state}
+                        </option>
+                      ))}
+                    </select>
+                    {!properties.length && (
+                      <p className="text-xs text-amber-600">Cadastre uma propriedade na API antes de registrar animais.</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="modal-id">Identificação Individual</Label>
-                    <Input 
+                    <Label htmlFor="modal-id">Brinco / tag (opcional)</Label>
+                    <Input
                       id="modal-id"
-                      placeholder="Ex: OV-1234"
-                      value={newAnimal.individualId}
-                      onChange={(e) => setNewAnimal({...newAnimal, individualId: e.target.value})}
+                      placeholder="Ex: TAG-001"
+                      value={newAnimal.tagId}
+                      onChange={(e) => setNewAnimal({ ...newAnimal, tagId: e.target.value })}
                       className="bg-gray-50"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="modal-sex">Sexo</Label>
-                    <select 
+                    <select
                       id="modal-sex"
                       value={newAnimal.sex}
-                      onChange={(e) => setNewAnimal({...newAnimal, sex: e.target.value})}
+                      onChange={(e) =>
+                        setNewAnimal({ ...newAnimal, sex: e.target.value as "MALE" | "FEMALE" })
+                      }
                       className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50"
                     >
-                      <option>Macho</option>
-                      <option>Fêmea</option>
+                      <option value="MALE">Macho</option>
+                      <option value="FEMALE">Fêmea</option>
                     </select>
                   </div>
 
@@ -674,6 +647,17 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
                       placeholder="Ex: Dorper, Santa Inês"
                       value={newAnimal.race}
                       onChange={(e) => setNewAnimal({...newAnimal, race: e.target.value})}
+                      className="bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="modal-birthCity">Cidade de nascimento</Label>
+                    <Input
+                      id="modal-birthCity"
+                      placeholder="Ex: Tauá"
+                      value={newAnimal.birthCity}
+                      onChange={(e) => setNewAnimal({ ...newAnimal, birthCity: e.target.value })}
                       className="bg-gray-50"
                     />
                   </div>
@@ -696,9 +680,6 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
                           selected={birthDate}
                           onSelect={(date) => {
                             setBirthDate(date);
-                            if (date) {
-                              setNewAnimal({...newAnimal, birthDate: format(date, "dd/MM/yyyy")});
-                            }
                           }}
                           locale={ptBR}
                           initialFocus
@@ -708,32 +689,57 @@ export function FlockManagement({ onBack, onLogout, onAnimalClick }: FlockManage
                   </div>
                 </div>
 
+                {saveError && (
+                  <p className="mt-4 text-sm text-red-600">{saveError}</p>
+                )}
+
                 {/* Modal Footer */}
                 <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200">
                   <Button 
                     variant="outline"
                     onClick={() => setShowAddModal(false)}
                     className="flex-1 cursor-pointer"
+                    disabled={isSaving}
                   >
                     Cancelar
                   </Button>
                   <Button 
                     className="flex-1 bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                    onClick={() => {
-                      // Aqui você pode adicionar a lógica para salvar o animal
-                      console.log("Novo animal:", newAnimal);
-                      setShowAddModal(false);
-                      setBirthDate(undefined);
-                      setNewAnimal({
-                        name: "",
-                        individualId: "",
-                        sex: "Macho",
-                        race: "",
-                        birthDate: "",
-                      });
+                    disabled={isSaving || !onCreateAnimal}
+                    onClick={async () => {
+                      setSaveError("");
+                      if (!onCreateAnimal) {
+                        setSaveError("Cadastro indisponível.");
+                        return;
+                      }
+                      if (!newAnimal.propertyId || !newAnimal.race || !birthDate || !newAnimal.birthCity) {
+                        setSaveError("Preencha propriedade, raça, cidade e data de nascimento.");
+                        return;
+                      }
+                      try {
+                        await onCreateAnimal({
+                          propertyId: newAnimal.propertyId,
+                          breed: newAnimal.race,
+                          sex: newAnimal.sex,
+                          birthDate: birthDate.toISOString(),
+                          birthCity: newAnimal.birthCity,
+                          ...(newAnimal.tagId ? { tagId: newAnimal.tagId } : {}),
+                        });
+                        setShowAddModal(false);
+                        setBirthDate(undefined);
+                        setNewAnimal({
+                          tagId: "",
+                          propertyId: "",
+                          sex: "MALE",
+                          race: "",
+                          birthCity: "",
+                        });
+                      } catch (err) {
+                        setSaveError(err instanceof Error ? err.message : "Erro ao salvar animal.");
+                      }
                     }}
                   >
-                    Salvar
+                    {isSaving ? "Salvando..." : "Salvar"}
                   </Button>
                 </div>
               </div>

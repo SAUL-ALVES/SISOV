@@ -16,19 +16,9 @@ import {
 } from "lucide-react";
 import logoImage from "../assets/logo-frontend.png";
 
-interface Animal {
-  id: string;
-  name: string;
-  type: string;
-  race: string;
-  weight: string;
-  birthDate: string;
-  status: string;
-  location: string;
-  lastCheck: string;
-  image: string;
-  hasEartag: boolean;
-}
+import type { Animal } from "../types/domain";
+
+type QRCodeAnimal = Animal & { hasEartag: boolean };
 
 interface BulkLabel {
   id: string;
@@ -38,106 +28,51 @@ interface BulkLabel {
 interface QRCodeGenerationProps {
   onBack: () => void;
   onLogout: () => void;
+  animals?: Animal[];
+  producerName?: string;
+  isLoading?: boolean;
 }
 
-export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
+export function QRCodeGeneration({
+  onBack,
+  onLogout,
+  animals: animalsProp = [],
+  producerName = "Produtor",
+  isLoading = false,
+}: QRCodeGenerationProps) {
   const [bulkQuantity, setBulkQuantity] = useState(12);
   const [bulkLabels, setBulkLabels] = useState<BulkLabel[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const animals: Animal[] = [
-    {
-      id: "OV-1234",
-      name: "Ovino #1234",
-      type: "Ovino",
-      race: "Dorper",
-      weight: "45kg",
-      birthDate: "15/01/2023",
-      status: "Saudável",
-      location: "Pasto A",
-      lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: false
-    },
-    {
-      id: "OV-1235",
-      name: "Ovino #1235",
-      type: "Ovino",
-      race: "Santa Inês",
-      weight: "42kg",
-      birthDate: "22/02/2023",
-      status: "Saudável",
-      location: "Pasto B",
-      lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1736066349278-897dde1f055d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNoZWVwJTIwbWVhZG93fGVufDF8fHx8MTc1OTI3MjU3NXww&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: false
-    },
-    {
-      id: "CP-0891",
-      name: "Caprino #0891",
-      type: "Caprino",
-      race: "Anglo-Nubiana",
-      weight: "38kg",
-      birthDate: "10/03/2023",
-      status: "Saudável",
-      location: "Pasto C",
-      lastCheck: "18/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: true
-    },
-    {
-      id: "OV-1236",
-      name: "Ovino #1236",
-      type: "Ovino",
-      race: "Dorper",
-      weight: "48kg",
-      birthDate: "05/12/2022",
-      status: "Saudável",
-      location: "Pasto A",
-      lastCheck: "20/03/2024",
-      image: "https://images.unsplash.com/photo-1664546474909-89d3390196d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxicm93biUyMHNoZWVwJTIwd29vbHxlbnwxfHx8fDE3NTkyNzI1NzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: false
-    },
-    {
-      id: "OV-1237",
-      name: "Ovino #1237",
-      type: "Ovino",
-      race: "Santa Inês",
-      weight: "44kg",
-      birthDate: "18/01/2023",
-      status: "Saudável",
-      location: "Pasto B",
-      lastCheck: "17/03/2024",
-      image: "https://images.unsplash.com/photo-1616842609926-533364126cf0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaGVlcCUyMHBvcnRyYWl0JTIwZmFybXxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: true
-    },
-    {
-      id: "CP-0892",
-      name: "Caprino #0892",
-      type: "Caprino",
-      race: "Saanen",
-      weight: "40kg",
-      birthDate: "25/02/2023",
-      status: "Saudável",
-      location: "Pasto C",
-      lastCheck: "19/03/2024",
-      image: "https://images.unsplash.com/photo-1723625449728-40e7a4d968e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnb2F0JTIwZmFybSUyMGFuaW1hbHxlbnwxfHx8fDE3NTkyNzI1NzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      hasEartag: false
-    }
-  ];
+  const animals: QRCodeAnimal[] = useMemo(
+    () =>
+      animalsProp.map((animal) => ({
+        ...animal,
+        hasEartag: Boolean(animal.tagId),
+      })),
+    [animalsProp],
+  );
 
   const availableAnimals = useMemo(() => animals.filter((animal) => !animal.hasEartag), [animals]);
 
-  const buildLabelId = (index: number) => `SEM-BRINCO-${String(index + 1).padStart(3, "0")}`;
+  const traceabilityBase =
+    typeof window !== "undefined" ? `${window.location.origin}/rastreabilidade` : "/rastreabilidade";
 
   const generateBulkQRCodes = async () => {
     if (bulkQuantity < 1) return;
     setIsGenerating(true);
     try {
+      const source =
+        availableAnimals.length > 0
+          ? availableAnimals.slice(0, bulkQuantity)
+          : Array.from({ length: bulkQuantity }, (_, index) => ({
+              trackingCode: `pendente-${index + 1}`,
+            }));
+
       const labels = await Promise.all(
-        Array.from({ length: bulkQuantity }, (_, index) => {
-          const id = buildLabelId(index);
-          const url = `https://sisov.com.br/rastreamento/${id}`;
+        source.map((animal, index) => {
+          const id = "trackingCode" in animal ? animal.trackingCode : `pendente-${index + 1}`;
+          const url = `${traceabilityBase}/${id}`;
           return QRCodeLib.toDataURL(url, {
             width: 360,
             margin: 2,
@@ -185,8 +120,8 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center space-x-3 pl-4 border-l border-slate-200">
                 <div className="text-right">
-                  <div className="text-sm font-semibold text-slate-900">Produtor Silva</div>
-                  <div className="text-xs text-slate-500">Administrador</div>
+                  <div className="text-sm font-semibold text-slate-900">{producerName}</div>
+                  <div className="text-xs text-slate-500">Produtor</div>
                 </div>
                 <Button variant="ghost" size="icon" className="cursor-pointer">
                   <ChevronDown className="h-4 w-4 text-slate-600" />
@@ -201,6 +136,11 @@ export function QRCodeGeneration({ onBack, onLogout }: QRCodeGenerationProps) {
       </motion.header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {isLoading && (
+          <div className="flex justify-center py-12 print:hidden">
+            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          </div>
+        )}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

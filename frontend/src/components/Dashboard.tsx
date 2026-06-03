@@ -24,45 +24,66 @@ import { motion } from "motion/react";
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import logoImage from "../assets/logo-frontend.png";
 
+interface DashboardStats {
+  totalAnimals: number;
+  healthyAnimals: number;
+  propertiesCount: number;
+  producerName?: string;
+}
+
 interface DashboardProps {
   onLogout: () => void;
   onFlockClick: () => void;
   onQRCodeClick: () => void;
+  stats?: DashboardStats;
+  isLoading?: boolean;
+  errorMessage?: string;
 }
 
-export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardProps) {
+export function Dashboard({
+  onLogout,
+  onFlockClick,
+  onQRCodeClick,
+  stats,
+  isLoading = false,
+  errorMessage,
+}: DashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const stats = [
+  const total = stats?.totalAnimals ?? 0;
+  const healthy = stats?.healthyAnimals ?? 0;
+  const healthPct = total > 0 ? `${Math.round((healthy / total) * 100)}%` : "—";
+
+  const statCards = [
     {
       title: "Total de Ovinos",
-      value: "243",
+      value: isLoading ? "…" : String(total),
       icon: Users,
       color: "text-teal-600",
-      bgColor: "bg-teal-100"
+      bgColor: "bg-teal-100",
     },
     {
       title: "Saúde Geral",
-      value: "98%",
+      value: isLoading ? "…" : healthPct,
       icon: Heart,
       color: "text-green-600",
-      bgColor: "bg-green-100"
+      bgColor: "bg-green-100",
     },
     {
-      title: "Última Vacinação",
-      value: "15/03/2024",
+      title: "Propriedades",
+      value: isLoading ? "…" : String(stats?.propertiesCount ?? 0),
       icon: Calendar,
       color: "text-blue-600",
-      bgColor: "bg-blue-100"
+      bgColor: "bg-blue-100",
     },
     {
-      title: "Relatórios",
-      value: "127",
+      title: "Produtor",
+      value: stats?.producerName?.split(" ")[0] ?? "—",
       icon: FileText,
       color: "text-purple-600",
-      bgColor: "bg-purple-100"
-    }
+      bgColor: "bg-purple-100",
+    },
   ];
 
   interface WeightCurvePoint {
@@ -252,7 +273,12 @@ export function Dashboard({ onLogout, onFlockClick, onQRCodeClick }: DashboardPr
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-          {stats.map((stat, index) => (
+          {errorMessage && (
+            <div className="sm:col-span-2 lg:col-span-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {errorMessage}
+            </div>
+          )}
+          {statCards.map((stat, index) => (
             <motion.div
               key={index}
               initial={{ y: 20, opacity: 0 }}

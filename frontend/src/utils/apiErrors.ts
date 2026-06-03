@@ -1,12 +1,28 @@
 import axios from 'axios';
+import type { ApiErrorBody } from '../types/api-contract';
 import type { ApiError } from '../types/domain';
 import type { HttpError } from '../types/api';
 
 export function formatApiError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const apiError = (error as HttpError).response?.data as ApiError | undefined;
+    const body = (error as HttpError).response?.data as ApiErrorBody | ApiError | undefined;
+    const message =
+      body && 'error' in body && body.error
+        ? body.error
+        : body && 'message' in body
+          ? body.message
+          : undefined;
 
-    if (apiError?.message) return apiError.message;
+    if (message) return message;
+
+    if (body && 'details' in body && body.details) {
+      return formatValidationErrors(body.details);
+    }
+
+    const legacyErrors = (body as ApiError | undefined)?.errors;
+    if (legacyErrors) {
+      return formatValidationErrors(legacyErrors);
+    }
 
     switch (error.response?.status) {
       case 400:
@@ -20,7 +36,9 @@ export function formatApiError(error: unknown): string {
       case 409:
         return 'Conflito: este recurso já existe.';
       case 422:
-        return formatValidationErrors(apiError?.errors);
+        return 'Erro de validação. Verifique os campos.';
+      case 429:
+        return 'Muitas tentativas. Aguarde alguns minutos.';
       case 500:
       case 502:
       case 503:

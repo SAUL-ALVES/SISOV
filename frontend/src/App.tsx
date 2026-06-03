@@ -13,18 +13,7 @@ import { QRCodeGeneration } from "./components/QRCodeGeneration";
 
 type Page = "landing" | "login" | "dashboard" | "flock" | "animal-panel" | "qr-code";
 
-interface Animal {
-  id: string;
-  name: string;
-  type: string;
-  race: string;
-  weight: string;
-  birthDate: string;
-  status: string;
-  location: string;
-  lastCheck: string;
-  image: string;
-}
+import type { Animal } from "./types/domain";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("landing");

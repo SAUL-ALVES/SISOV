@@ -8,6 +8,7 @@ export interface User {
   updatedAt: string;
 }
 
+/** @deprecated Use LoginResponse de api-contract.ts */
 export interface AuthResponse {
   accessToken: string;
   user: User;
@@ -51,6 +52,13 @@ export interface Animal {
   producerId: string;
   createdAt: string;
   updatedAt: string;
+  /** Campos da API SISOV (opcionais para compatibilidade com UI legada) */
+  sisovId?: string;
+  tagId?: string | null;
+  sex?: 'MALE' | 'FEMALE';
+  birthCity?: string;
+  propertyId?: string;
+  apiStatus?: 'ACTIVE' | 'SOLD' | 'SLAUGHTERED' | 'DEAD';
 }
 
 export type CreateAnimalDTO = Omit<Animal, 'id' | 'trackingCode' | 'createdAt' | 'updatedAt' | 'producerId'>;
