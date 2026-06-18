@@ -408,17 +408,13 @@ export function Dashboard({
                 </div>
               ) : (
                 <div className="overflow-x-auto -mx-4 sm:mx-0">
-                  <table className="min-w-full">
-                    <thead className="border-b border-gray-200">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">ID SISOV</th>
-                        <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Brinco</th>
-                        <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Raça</th>
-                        <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Nascimento</th>
-                        <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Status</th>
-                      </tr>
-                    </thead>
-                  </table>
+                  <div className="grid grid-cols-[18%_15%_20%_22%_25%] border-b border-gray-200">
+                    <div className="py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">ID SISOV</div>
+                    <div className="py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Brinco</div>
+                    <div className="py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Raça</div>
+                    <div className="py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Nascimento</div>
+                    <div className="py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Status</div>
+                  </div>
                   {filteredAnimals.length === 0 ? (
                     <div className="py-8 text-center text-gray-500 text-sm">
                       {searchTerm ? "Nenhum animal encontrado." : "Nenhum animal cadastrado ainda."}
@@ -429,42 +425,37 @@ export function Dashboard({
                       className="max-h-[480px] overflow-auto"
                     >
                       <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
-                        <table className="min-w-full">
-                          <tbody>
-                            {virtualizer.getVirtualItems().map((virtualRow) => {
-                              const animal = filteredAnimals[virtualRow.index];
-                              return (
-                                <tr
-                                  key={animal.id}
-                                  className="border-b border-gray-100 hover:bg-gray-50"
-                                  style={{
-                                    height: `${ROW_HEIGHT}px`,
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
-                                    transform: `translateY(${virtualRow.start}px)`,
-                                    display: 'table-row',
-                                  }}
-                                >
-                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 font-mono whitespace-nowrap">
-                                    {animal.sisovId?.slice(0, 8) ?? "—"}
-                                  </td>
-                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                                    {animal.tagId ?? "—"}
-                                  </td>
-                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.race}</td>
-                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-600 whitespace-nowrap">{animal.birthDate}</td>
-                                  <td className="py-3 px-4 whitespace-nowrap">
-                                    <Badge className={`text-xs ${STATUS_COLORS[animal.apiStatus ?? ""] ?? "bg-gray-100 text-gray-700"}`}>
-                                      {STATUS_LABELS[animal.apiStatus ?? ""] ?? animal.status}
-                                    </Badge>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                        {virtualizer.getVirtualItems().map((virtualRow) => {
+                          const animal = filteredAnimals[virtualRow.index];
+                          return (
+                            <div
+                              key={animal.id}
+                              className="grid grid-cols-[18%_15%_20%_22%_25%] border-b border-gray-100 hover:bg-gray-50 items-center"
+                              style={{
+                                height: `${ROW_HEIGHT}px`,
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                transform: `translateY(${virtualRow.start}px)`,
+                              }}
+                            >
+                              <div className="py-3 px-4 text-xs sm:text-sm text-gray-900 font-mono whitespace-nowrap truncate">
+                                {animal.sisovId?.slice(0, 8) ?? "—"}
+                              </div>
+                              <div className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap truncate">
+                                {animal.tagId ?? "—"}
+                              </div>
+                              <div className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap truncate">{animal.race}</div>
+                              <div className="py-3 px-4 text-xs sm:text-sm text-gray-600 whitespace-nowrap truncate">{animal.birthDate}</div>
+                              <div className="py-3 px-4 whitespace-nowrap">
+                                <Badge className={`text-xs ${STATUS_COLORS[animal.apiStatus ?? ""] ?? "bg-gray-100 text-gray-700"}`}>
+                                  {STATUS_LABELS[animal.apiStatus ?? ""] ?? animal.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
