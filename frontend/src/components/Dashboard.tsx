@@ -18,8 +18,10 @@ import {
   Menu,
   Loader2,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion } from "motion/react";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import logoImage from "../assets/logo-frontend.png";
 import type { Animal } from "../types/domain";
 
@@ -92,13 +94,28 @@ export function Dashboard({
     { title: "Produtor", value: isLoading ? "…" : producerFirstName, icon: FileText, color: "text-purple-600", bgColor: "bg-purple-100", tooltip: undefined },
   ];
 
-  const filteredAnimals = animals.filter(
-    (a) =>
-      searchTerm === "" ||
-      a.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.tagId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.sisovId?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const debouncedSearch = useDebouncedValue(searchTerm, 250);
+
+  const filteredAnimals = useMemo(() => {
+    if (!debouncedSearch) return animals;
+    const term = debouncedSearch.toLowerCase();
+    return animals.filter(
+      (a) =>
+        a.name?.toLowerCase().includes(term) ||
+        a.tagId?.toLowerCase().includes(term) ||
+        a.sisovId?.toLowerCase().includes(term),
+    );
+  }, [animals, debouncedSearch]);
+
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  const ROW_HEIGHT = 48;
+  const virtualizer = useVirtualizer({
+    count: filteredAnimals.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: useCallback(() => ROW_HEIGHT, []),
+    overscan: 20,
+  });
 
   const handleAddWeightRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +150,7 @@ export function Dashboard({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <img src={logoImage} alt="Sisov Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
+              <img src={logoImage} alt="Sisov Logo" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover" />
               <div className="hidden sm:block">
                 <h1 className="font-semibold text-gray-900">SISOV Dashboard</h1>
                 <p className="text-sm text-gray-500">Sistema de Rastreabilidade</p>
@@ -401,34 +418,56 @@ export function Dashboard({
                         <th className="text-left py-3 px-4 text-xs sm:text-sm font-semibold text-gray-700">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {filteredAnimals.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-8 text-center text-gray-500 text-sm">
-                            {searchTerm ? "Nenhum animal encontrado." : "Nenhum animal cadastrado ainda."}
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredAnimals.map((animal) => (
-                          <tr key={animal.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 font-mono whitespace-nowrap">
-                              {animal.sisovId?.slice(0, 8) ?? "—"}
-                            </td>
-                            <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
-                              {animal.tagId ?? "—"}
-                            </td>
-                            <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.race}</td>
-                            <td className="py-3 px-4 text-xs sm:text-sm text-gray-600 whitespace-nowrap">{animal.birthDate}</td>
-                            <td className="py-3 px-4 whitespace-nowrap">
-                              <Badge className={`text-xs ${STATUS_COLORS[animal.apiStatus ?? ""] ?? "bg-gray-100 text-gray-700"}`}>
-                                {STATUS_LABELS[animal.apiStatus ?? ""] ?? animal.status}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
                   </table>
+                  {filteredAnimals.length === 0 ? (
+                    <div className="py-8 text-center text-gray-500 text-sm">
+                      {searchTerm ? "Nenhum animal encontrado." : "Nenhum animal cadastrado ainda."}
+                    </div>
+                  ) : (
+                    <div
+                      ref={tableContainerRef}
+                      className="max-h-[480px] overflow-auto"
+                    >
+                      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: 'relative' }}>
+                        <table className="min-w-full">
+                          <tbody>
+                            {virtualizer.getVirtualItems().map((virtualRow) => {
+                              const animal = filteredAnimals[virtualRow.index];
+                              return (
+                                <tr
+                                  key={animal.id}
+                                  className="border-b border-gray-100 hover:bg-gray-50"
+                                  style={{
+                                    height: `${ROW_HEIGHT}px`,
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    transform: `translateY(${virtualRow.start}px)`,
+                                    display: 'table-row',
+                                  }}
+                                >
+                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 font-mono whitespace-nowrap">
+                                    {animal.sisovId?.slice(0, 8) ?? "—"}
+                                  </td>
+                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                                    {animal.tagId ?? "—"}
+                                  </td>
+                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-900 whitespace-nowrap">{animal.race}</td>
+                                  <td className="py-3 px-4 text-xs sm:text-sm text-gray-600 whitespace-nowrap">{animal.birthDate}</td>
+                                  <td className="py-3 px-4 whitespace-nowrap">
+                                    <Badge className={`text-xs ${STATUS_COLORS[animal.apiStatus ?? ""] ?? "bg-gray-100 text-gray-700"}`}>
+                                      {STATUS_LABELS[animal.apiStatus ?? ""] ?? animal.status}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="mt-4">

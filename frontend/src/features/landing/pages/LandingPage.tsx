@@ -12,9 +12,13 @@ export default function LandingPage() {
     navigate('/login');
   };
 
+  const handleRegisterClick = () => {
+    navigate('/cadastro');
+  };
+
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      <Header onLoginClick={handleLoginClick} />
+      <Header onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
       <main className="pt-16">
         <Hero onStartClick={handleLoginClick} />
         <About />

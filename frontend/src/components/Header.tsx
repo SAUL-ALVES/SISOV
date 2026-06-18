@@ -5,9 +5,10 @@ import logoImage from "../assets/logo-frontend.png";
 
 interface HeaderProps {
   onLoginClick: () => void;
+  onRegisterClick: () => void;
 }
 
-export function Header({ onLoginClick }: HeaderProps) {
+export function Header({ onLoginClick, onRegisterClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
@@ -33,10 +34,10 @@ export function Header({ onLoginClick }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <img 
-              src={logoImage} 
-              alt="Sisov Logo" 
-              className="w-10 h-10 rounded-lg object-cover"
+            <img
+              src={logoImage}
+              alt="Sisov Logo"
+              className="w-12 h-12 rounded-lg object-cover"
             />
             <span className="text-xl font-semibold text-gray-900">SISOV</span>
           </div>
@@ -78,7 +79,7 @@ export function Header({ onLoginClick }: HeaderProps) {
             <Button variant="ghost" className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 cursor-pointer" onClick={onLoginClick}>
               Entrar
             </Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white cursor-pointer">
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white cursor-pointer" onClick={onRegisterClick}>
               Cadastrar
             </Button>
           </div>
@@ -130,7 +131,7 @@ export function Header({ onLoginClick }: HeaderProps) {
                   <Button variant="ghost" className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 justify-start cursor-pointer" onClick={onLoginClick}>
                     Entrar
                   </Button>
-                  <Button className="bg-teal-600 hover:bg-teal-700 text-white justify-start cursor-pointer">
+                  <Button className="bg-teal-600 hover:bg-teal-700 text-white justify-start cursor-pointer" onClick={onRegisterClick}>
                     Cadastrar
                   </Button>
                 </div>

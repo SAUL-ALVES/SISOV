@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { loginSchema } from '../../../utils/validationSchemas';
 import { useAuth } from '../hooks/useAuth';
 import { formatApiError } from '../../../utils/apiErrors';
-import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldAlert } from 'lucide-react';
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 60_000;
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -14,13 +17,32 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState(0);
+  const [lockCountdown, setLockCountdown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isLocked = lockedUntil > Date.now();
+
+  useEffect(() => {
+    if (!isLocked) return;
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+      setLockCountdown(remaining);
+      if (remaining <= 0) {
+        setLockedUntil(0);
+        setFailedAttempts(0);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isLocked, lockedUntil]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setApiError('');
 
-    // Validar com Zod
+    if (isLocked) return;
+
     const result = loginSchema.safeParse(formData);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -34,11 +56,20 @@ export default function LoginPage() {
 
     try {
       await login(formData.email, formData.password);
+      setFailedAttempts(0);
       navigate('/app/dashboard', { replace: true });
     } catch (error) {
-      setApiError(formatApiError(error));
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      if (newAttempts >= MAX_ATTEMPTS) {
+        setLockedUntil(Date.now() + LOCKOUT_DURATION_MS);
+        setLockCountdown(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+        setApiError(`Muitas tentativas falhas. Conta bloqueada por ${Math.ceil(LOCKOUT_DURATION_MS / 1000)}s.`);
+      } else {
+        setApiError(formatApiError(error));
+      }
     }
-  };
+  }, [formData, isLocked, failedAttempts, login, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -69,9 +100,24 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">SISOV</h1>
             <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">Entrar na Plataforma</h2>
 
-            {apiError && (
+            {isLocked && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-300 rounded flex items-center gap-3">
+                <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-semibold">Acesso temporariamente bloqueado</p>
+                  <p>Tente novamente em {lockCountdown}s</p>
+                </div>
+              </div>
+            )}
+
+            {apiError && !isLocked && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
                 {apiError}
+                {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
+                  <p className="mt-1 text-xs text-red-400">
+                    Tentativa {failedAttempts}/{MAX_ATTEMPTS} — bloqueio após {MAX_ATTEMPTS} falhas
+                  </p>
+                )}
               </div>
             )}
 
@@ -122,16 +168,23 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2"
+                disabled={isLoading || isLocked}
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 disabled:opacity-50"
               >
-                {isLoading ? 'Entrando...' : 'Entrar'}
+                {isLocked
+                  ? `Bloqueado (${lockCountdown}s)`
+                  : isLoading
+                    ? 'Entrando...'
+                    : 'Entrar'}
               </Button>
             </form>
 
             <p className="text-center text-gray-600 text-sm mt-6">
               Não tem uma conta?{' '}
-              <button className="text-teal-600 hover:text-teal-700 font-medium">
+              <button
+                onClick={() => navigate('/cadastro')}
+                className="text-teal-600 hover:text-teal-700 font-medium"
+              >
                 Faça seu cadastro
               </button>
             </p>

@@ -4,13 +4,16 @@ import type { ReactNode } from 'react';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,        // 5 minutos
-      gcTime: 10 * 60 * 1000,          // 10 minutos
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
       retry: 2,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      networkMode: 'offlineFirst',
     },
     mutations: {
       retry: 1,
+      networkMode: 'offlineFirst',
     },
   },
 });

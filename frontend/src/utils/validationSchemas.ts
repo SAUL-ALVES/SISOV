@@ -7,6 +7,19 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
+export const registerSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
+  document: z.string().min(11, 'CPF/CNPJ inválido').max(18, 'CPF/CNPJ inválido'),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'As senhas não coincidem',
+  path: ['confirmPassword'],
+});
+
+export type RegisterFormData = z.infer<typeof registerSchema>;
+
 export const animalSchema = z.object({
   name: z.string().min(2, 'Nome deve ter no mínimo 2 caracteres'),
   individualId: z.string().min(1, 'ID do animal é obrigatório'),

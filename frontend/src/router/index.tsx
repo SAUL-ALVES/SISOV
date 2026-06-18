@@ -10,6 +10,7 @@ const DashboardPage = lazy(() => import('../features/dashboard/pages/DashboardPa
 const FlockManagementPage = lazy(() => import('../features/animals/pages/FlockManagementPage'));
 const AnimalPanelPage = lazy(() => import('../features/animals/pages/AnimalPanelPage'));
 const QRCodeGenerationPage = lazy(() => import('../features/qrcode/pages/QRCodeGenerationPage'));
+const RegisterPage = lazy(() => import('../features/auth/pages/RegisterPage'));
 const PublicTraceabilityPage = lazy(() => import('../features/traceability/pages/PublicTraceabilityPage'));
 
 // Layouts
@@ -35,6 +36,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: withSuspense(LandingPage) },
       { path: 'login', element: withSuspense(LoginPage) },
+      { path: 'cadastro', element: withSuspense(RegisterPage) },
       { path: 'rastreabilidade/:id', element: withSuspense(PublicTraceabilityPage) },
     ],
   },

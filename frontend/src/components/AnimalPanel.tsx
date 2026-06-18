@@ -147,7 +147,7 @@ export function AnimalPanel({
               <Button variant="ghost" size="icon" onClick={onBack} className="cursor-pointer">
                 <ArrowLeft className="h-5 w-5 text-gray-600" />
               </Button>
-              <img src={logoImage} alt="Sisov Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
+              <img src={logoImage} alt="Sisov Logo" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover" />
               <div className="hidden sm:block">
                 <h1 className="font-semibold text-gray-900">{viewOnly ? "Visualização do Animal" : "Painel do Animal"}</h1>
                 <p className="text-sm text-gray-500 font-mono">{animal.sisovId?.slice(0, 12) ?? animal.id}</p>
