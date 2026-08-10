@@ -13,6 +13,12 @@ interface RateLimitRule {
 const RULES: Record<string, RateLimitRule> = {
   '/auth/login': { maxRequests: 5, windowMs: 60_000, blockDurationMs: 30_000 },
   '/auth/register': { maxRequests: 3, windowMs: 300_000, blockDurationMs: 60_000 },
+  '/auth/google/complete': {
+    maxRequests: 5,
+    windowMs: 60_000,
+    blockDurationMs: 30_000,
+  },
+  '/auth/google': { maxRequests: 5, windowMs: 60_000, blockDurationMs: 30_000 },
   default: { maxRequests: 60, windowMs: 60_000, blockDurationMs: 5_000 },
 };
 

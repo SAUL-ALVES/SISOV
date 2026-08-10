@@ -13,7 +13,7 @@ export function formatApiError(error: unknown): string {
           ? body.message
           : undefined;
 
-    if (message) return message;
+    if (message) return localizeApiMessage(message);
 
     if (body && 'details' in body && body.details) {
       return formatValidationErrors(body.details);
@@ -37,6 +37,8 @@ export function formatApiError(error: unknown): string {
         return 'Conflito: este recurso já existe.';
       case 422:
         return 'Erro de validação. Verifique os campos.';
+      case 428:
+        return 'Informe seu CPF ou CNPJ para concluir o cadastro.';
       case 429:
         return 'Muitas tentativas. Aguarde alguns minutos.';
       case 500:
@@ -54,6 +56,27 @@ export function formatApiError(error: unknown): string {
   }
 
   return 'Erro inesperado.';
+}
+
+function localizeApiMessage(message: string): string {
+  const knownMessages: Record<string, string> = {
+    'Invalid Google ID token.':
+      'A credencial do Google é inválida ou expirou. Tente novamente.',
+    'Google account must have a verified email address.':
+      'Sua conta Google precisa ter um e-mail verificado.',
+    'Google authentication is not configured.':
+      'O login Google está temporariamente indisponível.',
+    'Invalid or expired Google onboarding token.':
+      'O prazo para concluir o cadastro expirou. Entre com o Google novamente.',
+    'A producer with this document already exists.':
+      'Este CPF ou CNPJ já está cadastrado no SISOV.',
+    'This Google account or email is already registered.':
+      'Esta conta Google ou e-mail já está cadastrado no SISOV.',
+    'This email is already linked to another Google account.':
+      'Este e-mail já está vinculado a outra conta Google.',
+  };
+
+  return knownMessages[message] ?? message;
 }
 
 function formatValidationErrors(errors?: Record<string, string[]>): string {

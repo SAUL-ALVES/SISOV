@@ -13,6 +13,17 @@ export interface LoginResponse {
   token: string;
 }
 
+export interface GoogleOnboardingResponse {
+  code: 'PROFILE_COMPLETION_REQUIRED';
+  onboardingToken: string;
+  profile: {
+    email: string;
+    name: string;
+  };
+}
+
+export type GoogleLoginResponse = LoginResponse | GoogleOnboardingResponse;
+
 export interface RegisterProducerPayload {
   name: string;
   document: string;

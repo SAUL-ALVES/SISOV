@@ -21,6 +21,40 @@ export function useAuth() {
     }
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    try {
+      setLoading(true);
+      const response = await authService.loginWithGoogle(idToken);
+      if ('producer' in response) {
+        setAuth(mapProducerToUser(response.producer));
+      }
+      return response;
+    } catch (error) {
+      throw new Error(formatApiError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const completeGoogleLogin = async (
+    onboardingToken: string,
+    document: string,
+  ) => {
+    try {
+      setLoading(true);
+      const response = await authService.completeGoogleLogin(
+        onboardingToken,
+        document,
+      );
+      setAuth(mapProducerToUser(response.producer));
+      return response;
+    } catch (error) {
+      throw new Error(formatApiError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       await authService.logout();
@@ -55,6 +89,8 @@ export function useAuth() {
     isAuthenticated,
     isLoading,
     login,
+    loginWithGoogle,
+    completeGoogleLogin,
     logout,
   };
 }

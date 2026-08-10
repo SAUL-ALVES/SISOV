@@ -2,17 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { loginSchema } from '../../../utils/validationSchemas';
+import { documentSchema, loginSchema } from '../../../utils/validationSchemas';
 import { useAuth } from '../hooks/useAuth';
 import { formatApiError } from '../../../utils/apiErrors';
 import { Eye, EyeOff, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import type { CredentialResponse } from '@react-oauth/google';
+import type { GoogleOnboardingResponse } from '../../../types/api-contract';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 60_000;
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const { login, loginWithGoogle, completeGoogleLogin, isLoading } = useAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
@@ -20,6 +23,10 @@ export default function LoginPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState(0);
   const [lockCountdown, setLockCountdown] = useState(0);
+  const [googleOnboarding, setGoogleOnboarding] =
+    useState<GoogleOnboardingResponse | null>(null);
+  const [document, setDocument] = useState('');
+  const [documentError, setDocumentError] = useState('');
 
   const isLocked = lockedUntil > Date.now();
 
@@ -82,6 +89,51 @@ export default function LoginPage() {
       });
     }
   };
+
+  const handleGoogleSuccess = useCallback(
+    async (credentialResponse: CredentialResponse) => {
+      setApiError('');
+      const credential = credentialResponse.credential;
+      if (!credential) {
+        setApiError('O Google não forneceu uma credencial válida. Tente novamente.');
+        return;
+      }
+
+      try {
+        const response = await loginWithGoogle(credential);
+        if ('producer' in response) {
+          navigate('/app/dashboard', { replace: true });
+          return;
+        }
+        setGoogleOnboarding(response);
+      } catch (error) {
+        setApiError(formatApiError(error));
+      }
+    },
+    [loginWithGoogle, navigate],
+  );
+
+  const handleCompleteGoogleLogin = useCallback(async () => {
+    if (!googleOnboarding) return;
+
+    const validation = documentSchema.safeParse(document);
+    if (!validation.success) {
+      setDocumentError(validation.error.issues[0]?.message ?? 'Documento inválido.');
+      return;
+    }
+
+    setDocumentError('');
+    setApiError('');
+    try {
+      await completeGoogleLogin(
+        googleOnboarding.onboardingToken,
+        validation.data,
+      );
+      navigate('/app/dashboard', { replace: true });
+    } catch (error) {
+      setApiError(formatApiError(error));
+    }
+  }, [completeGoogleLogin, document, googleOnboarding, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 relative" style={{ background: 'linear-gradient(135deg, #0d9488 0%, #0f766e 40%, #134e4a 100%)' }}>
@@ -178,6 +230,80 @@ export default function LoginPage() {
                     : 'Entrar'}
               </Button>
             </form>
+
+            <div className="my-6 flex items-center gap-3" aria-hidden="true">
+              <div className="h-px flex-1 bg-gray-200" />
+              <span className="text-sm text-gray-500">ou</span>
+              <div className="h-px flex-1 bg-gray-200" />
+            </div>
+
+            <div className="flex justify-center">
+              {isLoading ? (
+                <div className="h-11 flex items-center text-sm text-gray-500">
+                  Entrando com Google...
+                </div>
+              ) : (
+                <GoogleLogin
+                  onSuccess={(response) => void handleGoogleSuccess(response)}
+                  onError={() =>
+                    setApiError(
+                      'Não foi possível abrir o login do Google. Tente novamente.',
+                    )
+                  }
+                  text="continue_with"
+                  theme="outline"
+                  size="large"
+                  shape="rectangular"
+                  width="352"
+                />
+              )}
+            </div>
+
+            {googleOnboarding && (
+              <div className="mt-6 rounded-lg border border-teal-200 bg-teal-50 p-4">
+                <h3 className="font-semibold text-teal-900">
+                  Conclua seu cadastro
+                </h3>
+                <p className="mt-1 text-sm text-teal-800">
+                  {googleOnboarding.profile.name} ({googleOnboarding.profile.email})
+                </p>
+                <p className="mt-2 text-sm text-gray-600">
+                  Informe seu CPF ou CNPJ para garantir a rastreabilidade dos
+                  animais.
+                </p>
+                <label
+                  htmlFor="google-document"
+                  className="mt-4 block text-sm font-medium text-gray-700"
+                >
+                  CPF ou CNPJ
+                </label>
+                <Input
+                  id="google-document"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={document}
+                  maxLength={14}
+                  onChange={(event) => {
+                    setDocument(event.target.value.replace(/\D/g, ''));
+                    setDocumentError('');
+                  }}
+                  placeholder="Somente números"
+                  disabled={isLoading}
+                  className={`mt-1 ${documentError ? 'border-red-500' : ''}`}
+                />
+                {documentError && (
+                  <p className="mt-1 text-sm text-red-600">{documentError}</p>
+                )}
+                <Button
+                  type="button"
+                  onClick={() => void handleCompleteGoogleLogin()}
+                  disabled={isLoading}
+                  className="mt-4 w-full bg-teal-600 text-white hover:bg-teal-700"
+                >
+                  {isLoading ? 'Concluindo...' : 'Concluir cadastro e entrar'}
+                </Button>
+              </div>
+            )}
 
             <p className="text-center text-gray-600 text-sm mt-6">
               Não tem uma conta?{' '}

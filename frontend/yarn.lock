@@ -956,6 +956,11 @@
   resolved "https://registry.npmjs.org/@radix-ui/rect/-/rect-1.1.1.tgz"
   integrity sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==
 
+"@react-oauth/google@^0.13.5":
+  version "0.13.5"
+  resolved "https://registry.npmjs.org/@react-oauth/google/-/google-0.13.5.tgz"
+  integrity sha512-xQWri2s/3nNekZJ4uuov2aAfQYu83bN3864KcFqw2pK1nNbFurQIjPFDXhWaKH3IjYJ2r/9yyIIpsn5lMqrheQ==
+
 "@remix-run/router@1.23.3":
   version "1.23.3"
   resolved "https://registry.npmjs.org/@remix-run/router/-/router-1.23.3.tgz"
@@ -987,6 +992,18 @@
   integrity sha512-rLlJXSpkqfizLWgkR5+eLeIk0MvTx/meEIR7LRjxic+qxiQP8zVjq7BqQkiCMNLQBlLfuOLqqr6KO5GtrDlmSg==
   dependencies:
     "@tanstack/query-core" "5.101.0"
+
+"@tanstack/react-virtual@^3.14.3":
+  version "3.14.3"
+  resolved "https://registry.npmjs.org/@tanstack/react-virtual/-/react-virtual-3.14.3.tgz"
+  integrity sha512-k/cnHPVaOfn46hSbiY6n4Dzf4QjCGWSF40zR5QIIYUqPAjpA6TN7InfYmcMiDVQGP2iUn9xsRbAl8u1v3UmeVQ==
+  dependencies:
+    "@tanstack/virtual-core" "3.17.1"
+
+"@tanstack/virtual-core@3.17.1":
+  version "3.17.1"
+  resolved "https://registry.npmjs.org/@tanstack/virtual-core/-/virtual-core-3.17.1.tgz"
+  integrity sha512-VZyW2Uiml5tmBZwPGrSD3Sz73OxzljQMCmzYHsUTPEuTsERf5xwa+uWb01xEzkz3ZSYTjj8NEb/mKHvgKxyZdA==
 
 "@types/babel__core@^7.20.5":
   version "7.20.5"

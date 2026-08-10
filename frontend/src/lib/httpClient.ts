@@ -62,6 +62,14 @@ const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY = 1000;
 const RETRYABLE_STATUSES = new Set([408, 429, 500, 502, 503, 504]);
 
+function isPublicAuthEndpoint(url?: string): boolean {
+  return Boolean(
+    url?.includes('/auth/login') ||
+      url?.includes('/auth/register') ||
+      url?.includes('/auth/google'),
+  );
+}
+
 function shouldRetry(error: AxiosError): boolean {
   if (!error.response) return true;
   return RETRYABLE_STATUSES.has(error.response.status);
@@ -84,7 +92,7 @@ httpClient.interceptors.response.use(
     if (!config) return Promise.reject(error);
 
     // 401 — session expired
-    if (error.response?.status === 401 && !config.url?.includes('/auth/login')) {
+    if (error.response?.status === 401 && !isPublicAuthEndpoint(config.url)) {
       setAccessToken(null);
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
         window.location.href = '/login';
