@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -27,8 +27,29 @@ export default function LoginPage() {
     useState<GoogleOnboardingResponse | null>(null);
   const [document, setDocument] = useState('');
   const [documentError, setDocumentError] = useState('');
+  const googleButtonContainerRef = useRef<HTMLDivElement>(null);
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(200);
 
   const isLocked = lockedUntil > Date.now();
+
+  useEffect(() => {
+    const container = googleButtonContainerRef.current;
+    if (!container) return;
+
+    const updateGoogleButtonWidth = (width: number) => {
+      if (width > 0) {
+        setGoogleButtonWidth(Math.floor(Math.min(width, 400)));
+      }
+    };
+
+    updateGoogleButtonWidth(container.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => {
+      updateGoogleButtonWidth(entry.contentRect.width);
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!isLocked) return;
@@ -237,7 +258,10 @@ export default function LoginPage() {
               <div className="h-px flex-1 bg-gray-200" />
             </div>
 
-            <div className="flex justify-center">
+            <div
+              ref={googleButtonContainerRef}
+              className="flex w-full min-w-0 justify-center overflow-hidden"
+            >
               {isLoading ? (
                 <div className="h-11 flex items-center text-sm text-gray-500">
                   Entrando com Google...
@@ -254,7 +278,7 @@ export default function LoginPage() {
                   theme="outline"
                   size="large"
                   shape="rectangular"
-                  width="352"
+                  width={String(googleButtonWidth)}
                 />
               )}
             </div>
